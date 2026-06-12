@@ -13,121 +13,95 @@
   --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
   --text:#dde1ef;--text2:#8b93ad;--text3:#515870;
   --green:#3ecf8e;--blue:#6c9fff;--amber:#f5a623;
-  --coral:#f07055;--purple:#a78bfa;--teal:#2dd4bf;--red:#f87171;--pink:#f472b6;
+  --coral:#f07055;--purple:#a78bfa;--teal:#2dd4bf;--red:#f87171;
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
-a{color:inherit;text-decoration:none}
 
-/* ── TOPBAR ── */
-.topbar{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 24px;border-bottom:1px solid var(--border);
-  position:sticky;top:0;z-index:100;background:var(--bg);flex-wrap:wrap;gap:10px
-}
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:13px 24px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;background:var(--bg);flex-wrap:wrap;gap:10px}
 .tb-left{display:flex;align-items:center;gap:14px}
 .logo{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.3px}
-.logo-sub{font-size:11px;color:var(--text3);font-weight:400;letter-spacing:.05em;display:flex;gap:6px}
-.dot-sep{color:var(--text3)}
+.logo-sub{font-size:11px;color:var(--text3);letter-spacing:.05em;display:flex;gap:6px}
 .tb-right{display:flex;align-items:center;gap:10px}
-.sync-badge{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px;padding:0 4px}
-.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;animation:blink 2s infinite}
+.sync-badge{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite;flex-shrink:0}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.btn{font-size:12px;padding:6px 14px;border-radius:7px;cursor:pointer;transition:all .15s;white-space:nowrap;border:1px solid var(--border2);background:transparent;color:var(--text2)}
-.btn:hover{background:var(--bg3);color:var(--text)}
-.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
-.btn-primary:hover{background:#5a8fef}
+.btn-sync{font-size:12px;padding:6px 14px;border-radius:7px;cursor:pointer;background:var(--blue);color:#fff;border:none;font-weight:500;transition:opacity .15s}
+.btn-sync:hover{opacity:.85}
 
-/* ── FILTER BAR ── */
-.filter-bar{padding:14px 24px 10px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
-.fg{display:flex;flex-direction:column;gap:5px}
-.fg-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
-.fg select,.fg input[type=date]{
-  font-size:12px;padding:6px 10px;height:32px;
-  background:var(--bg2);color:var(--text);border:1px solid var(--border2);
-  border-radius:7px;cursor:pointer;outline:none;min-width:120px
-}
+/* FILTER BAR */
+.fbar{padding:12px 24px 10px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg-lbl{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+.fg select,.fg input[type=date]{font-size:12px;padding:6px 10px;height:32px;background:var(--bg2);color:var(--text);border:1px solid var(--border2);border-radius:7px;cursor:pointer;outline:none;min-width:120px}
 .fg input[type=date]{min-width:126px;color-scheme:dark}
 .fg select:focus,.fg input:focus{border-color:var(--blue)}
-.date-wrap{display:flex;align-items:center;gap:6px}
-.date-to{font-size:11px;color:var(--text3)}
-.quick-row{display:flex;gap:4px;margin-top:5px}
+.dw{display:flex;align-items:center;gap:6px}
+.dt{font-size:11px;color:var(--text3)}
+.qrow{display:flex;gap:4px;margin-top:4px}
 .qb{font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;background:transparent;color:var(--text2);border:1px solid var(--border);transition:all .12s;white-space:nowrap}
 .qb:hover,.qb.on{background:var(--blue);color:#fff;border-color:var(--blue)}
 .reset-btn{font-size:12px;padding:6px 14px;height:32px;cursor:pointer;background:transparent;color:var(--text2);border:1px solid var(--border2);border-radius:7px;transition:all .15s}
 .reset-btn:hover{background:var(--bg3);color:var(--text)}
 
-/* ── MAIN ── */
-.main{padding:20px 24px 48px}
+/* MAIN */
+.main{padding:20px 24px 56px}
+.sec{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
 
-/* ── SECTION HEADER ── */
-.sec-hdr{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+/* KPI CARDS */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px;margin-bottom:8px}
+.kc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:17px 18px 13px;position:relative}
+.kc-lbl{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px}
+.kc-val{font-size:32px;font-weight:700;line-height:1;letter-spacing:-.5px}
+.kc-sub{font-size:11px;color:var(--text2);margin-top:5px}
 
-/* ── KPI GRID ── */
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px;margin-bottom:8px}
-.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 18px 14px;position:relative}
-.kpi-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
-.kpi-val{font-size:32px;font-weight:700;line-height:1;letter-spacing:-.5px}
-.kpi-sub{font-size:11px;color:var(--text2);margin-top:6px}
-.kpi-arrow{position:absolute;top:14px;right:14px;font-size:13px;color:var(--text3)}
-
-/* row 2 kpis - slightly smaller */
-.kpi2-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px;margin-bottom:20px}
-.kpi2{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px 12px}
-.kpi2-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
-.kpi2-val{font-size:28px;font-weight:700;line-height:1;letter-spacing:-.3px}
-.kpi2-sub{font-size:11px;color:var(--text2);margin-top:5px}
-
-/* ── CHART CARD ── */
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px 20px 16px;margin-bottom:12px}
-.card-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px}
-.card-title{font-size:14px;font-weight:600;color:var(--text)}
-.card-sub{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
-.card-meta{font-size:11px;color:var(--text2)}
-.toggle-row{display:flex;gap:4px}
+/* CHART CARD */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 20px 14px;margin-bottom:12px}
+.chdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.ctitle{font-size:14px;font-weight:600;color:var(--text)}
+.csub{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.tgl-row{display:flex;gap:4px}
 .tgl{font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;background:transparent;color:var(--text2);border:1px solid var(--border);transition:all .12s}
-.tgl:hover,.tgl.on{background:var(--bg4);color:var(--text);border-color:var(--border2)}
 .tgl.on{background:var(--blue);color:#fff;border-color:var(--blue)}
 
-/* ── TWO COL ── */
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 
-/* ── LEGEND ── */
-.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:11px;color:var(--text2);margin-bottom:12px}
+/* LEGEND */
+.leg{display:flex;flex-wrap:wrap;gap:14px;font-size:11px;color:var(--text2);margin-bottom:12px}
 .li{display:flex;align-items:center;gap:5px}
 .ld{width:10px;height:10px;border-radius:2px;flex-shrink:0}
-.lval{font-weight:600;color:var(--text);margin-left:2px}
+.lv{font-weight:600;color:var(--text);margin-left:2px}
 
-/* ── HORIZONTAL BAR (custom) ── */
-.hbar-list{display:flex;flex-direction:column;gap:0}
-.hbar-row{display:grid;grid-template-columns:160px 1fr 52px;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)}
-.hbar-row:last-child{border-bottom:none}
-.hbar-label{font-size:12px;color:var(--text2);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hbar-track{background:var(--bg3);border-radius:3px;height:8px;overflow:hidden}
-.hbar-fill{height:100%;border-radius:3px;transition:width .4s}
-.hbar-count{font-size:12px;color:var(--text);font-weight:500;text-align:right;white-space:nowrap}
+/* PROGRESS CARDS */
+.pgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.pc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+.pnums{display:flex;justify-content:space-between;margin-bottom:3px}
+.pbig{font-size:22px;font-weight:700}
+.ppct{font-size:12px;color:var(--text2);font-weight:500}
+.plbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:11px}
+.pbar{height:6px;border-radius:3px;background:var(--bg3);display:flex;overflow:hidden;margin-bottom:4px}
+.pseg{height:100%}
+.prange{display:flex;justify-content:space-between;font-size:10px;color:var(--text3)}
+.pfoot{font-size:10px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
 
-/* ── PROGRESS BARS (SLA style) ── */
-.progress-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
-.prog-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
-.prog-nums{display:flex;justify-content:space-between;margin-bottom:4px}
-.prog-big{font-size:22px;font-weight:700}
-.prog-pct{font-size:12px;color:var(--text2);font-weight:500}
-.prog-label-sm{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:12px}
-.prog-bar-wrap{margin-bottom:6px}
-.prog-bar{height:6px;border-radius:3px;background:var(--bg3);overflow:hidden;margin-bottom:4px;display:flex}
-.prog-seg{height:100%}
-.prog-range{display:flex;justify-content:space-between;font-size:10px;color:var(--text3)}
-.prog-foot{font-size:10px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+/* HBAR */
+.hlist{display:flex;flex-direction:column}
+.hr{display:grid;grid-template-columns:150px 1fr 50px;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)}
+.hr:last-child{border-bottom:none}
+.hl{font-size:11px;color:var(--text2);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ht{background:var(--bg3);border-radius:3px;height:8px;overflow:hidden}
+.hf{height:100%;border-radius:3px}
+.hc{font-size:12px;color:var(--text);font-weight:500;text-align:right;white-space:nowrap}
 
-/* ── TABLE ── */
-.tbl-wrap{overflow-x:auto}
+/* TABLE */
+.tw{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:12px}
 th{font-size:10px;font-weight:600;color:var(--text3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border2);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
 td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
 tr:last-child td{border-bottom:none}
 tbody tr:hover td{background:var(--bg3)}
 
-/* ── PILLS ── */
+/* PILLS */
 .pill{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px}
 .p-live{background:rgba(62,207,142,.14);color:var(--green)}
 .p-ob{background:rgba(245,166,35,.14);color:var(--amber)}
@@ -138,264 +112,186 @@ tbody tr:hover td{background:var(--bg3)}
 .p-fra{background:rgba(240,112,85,.14);color:var(--coral)}
 .p-res{background:rgba(248,113,113,.14);color:var(--red)}
 
-/* ── LOADING ── */
-.spin-wrap{text-align:center;padding:60px;color:var(--text2);font-size:13px}
-.spin{display:inline-block;width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px}
+/* COLORS */
+.cg{color:var(--green)}.cb{color:var(--blue)}.ca{color:var(--amber)}
+.cc{color:var(--coral)}.cp{color:var(--purple)}.ct{color:var(--teal)}.cr{color:var(--red)}
+
+/* LOADING */
+.spin{display:inline-block;width:22px;height:22px;border:2px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.err-bar{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);border-radius:8px;padding:10px 16px;font-size:12px;color:var(--red);margin-bottom:14px;display:none}
+.loading{text-align:center;padding:50px;color:var(--text2);font-size:13px}
+.errbar{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);border-radius:8px;padding:10px 16px;font-size:12px;color:var(--red);margin:10px 24px;display:none}
 
-/* green for positive text */
-.c-g{color:var(--green)}.c-b{color:var(--blue)}.c-a{color:var(--amber)}
-.c-c{color:var(--coral)}.c-p{color:var(--purple)}.c-t{color:var(--teal)}.c-r{color:var(--red)}
-
-@media(max-width:900px){
-  .two-col{grid-template-columns:1fr}
-  .progress-cards{grid-template-columns:1fr}
-  .kpi-grid{grid-template-columns:repeat(2,1fr)}
-  .kpi2-grid{grid-template-columns:repeat(2,1fr)}
-}
-@media(max-width:600px){
-  .topbar,.filter-bar,.main{padding-left:14px;padding-right:14px}
-  .kpi-grid,.kpi2-grid{grid-template-columns:repeat(2,1fr)}
-  .kpi-val{font-size:24px}.kpi2-val{font-size:20px}
-  .hbar-row{grid-template-columns:110px 1fr 40px}
-}
+@media(max-width:900px){.two{grid-template-columns:1fr}.pgrid{grid-template-columns:1fr}.kgrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.topbar,.fbar,.main{padding-left:14px;padding-right:14px}.kc-val{font-size:24px}}
 </style>
 </head>
 <body>
 
-<!-- TOPBAR -->
 <div class="topbar">
   <div class="tb-left">
     <span class="logo">Spyne Catalog Dashboard</span>
-    <span class="logo-sub">
-      <span>MASTER</span><span class="dot-sep">·</span>
-      <span>VIN LEVEL-1</span>
-    </span>
+    <span class="logo-sub"><span>MASTER</span><span style="color:var(--text3)">·</span><span>VIN LEVEL-1</span></span>
   </div>
   <div class="tb-right">
-    <div class="sync-badge"><span class="sync-dot"></span><span id="syncText">Loading…</span></div>
-    <button class="btn btn-primary" onclick="loadData()">↻ Sync</button>
+    <div class="sync-badge"><span class="sdot"></span><span id="syncTxt">Loading…</span></div>
+    <button class="btn-sync" onclick="loadData()">↻ Sync</button>
   </div>
 </div>
 
-<!-- FILTER BAR -->
-<div class="filter-bar">
+<div id="errbar" class="errbar"></div>
+
+<div class="fbar">
   <div class="fg">
-    <span class="fg-label">Date range</span>
-    <div class="date-wrap">
-      <input type="date" id="fFrom" onchange="applyFilters()">
-      <span class="date-to">→</span>
-      <input type="date" id="fTo" onchange="applyFilters()">
+    <span class="fg-lbl">Date range</span>
+    <div class="dw">
+      <input type="date" id="fFrom" onchange="applyF()">
+      <span class="dt">→</span>
+      <input type="date" id="fTo" onchange="applyF()">
     </div>
-    <div class="quick-row">
-      <button class="qb" onclick="setQuick('today',this)">Today</button>
-      <button class="qb" onclick="setQuick('7d',this)">Last 7d</button>
-      <button class="qb" onclick="setQuick('30d',this)">Last 30d</button>
-      <button class="qb" onclick="setQuick('mtd',this)">This month</button>
-      <button class="qb on" onclick="setQuick('all',this)">All time</button>
+    <div class="qrow">
+      <button class="qb" onclick="setQ('today',this)">Today</button>
+      <button class="qb" onclick="setQ('7d',this)">Last 7d</button>
+      <button class="qb" onclick="setQ('30d',this)">Last 30d</button>
+      <button class="qb" onclick="setQ('mtd',this)">This month</button>
+      <button class="qb on" onclick="setQ('all',this)">All time</button>
     </div>
   </div>
-  <div class="fg">
-    <span class="fg-label">DMS</span>
-    <select id="fDMS" onchange="applyFilters()"><option value="">All DMS</option></select>
-  </div>
-  <div class="fg">
-    <span class="fg-label">Stage</span>
-    <select id="fStage" onchange="applyFilters()">
-      <option value="">All stages</option>
-      <option value="Live">Live</option>
-      <option value="OB">OB</option>
+  <div class="fg"><span class="fg-lbl">DMS</span><select id="fDMS" onchange="applyF()"><option value="">All DMS</option></select></div>
+  <div class="fg"><span class="fg-lbl">Stage</span>
+    <select id="fStage" onchange="applyF()">
+      <option value="">All stages</option><option>Live</option><option>OB</option>
     </select>
   </div>
-  <div class="fg">
-    <span class="fg-label">Segment</span>
-    <select id="fSeg" onchange="applyFilters()">
-      <option value="">All segments</option>
-      <option value="Ent">Enterprise</option>
-      <option value="Mid">Mid-market</option>
-      <option value="SMB">SMB</option>
+  <div class="fg"><span class="fg-lbl">Segment</span>
+    <select id="fSeg" onchange="applyF()">
+      <option value="">All segments</option><option>Ent</option><option>Mid</option><option>SMB</option>
     </select>
   </div>
-  <div class="fg">
-    <span class="fg-label">Account type</span>
-    <select id="fType" onchange="applyFilters()">
-      <option value="">All types</option>
-      <option value="INDEPENDENT">Independent</option>
-      <option value="FRANCHISE">Franchise</option>
-      <option value="RESELLER">Reseller</option>
+  <div class="fg"><span class="fg-lbl">Account type</span>
+    <select id="fType" onchange="applyF()">
+      <option value="">All types</option><option>INDEPENDENT</option><option>FRANCHISE</option><option>RESELLER</option>
     </select>
   </div>
-  <div class="fg">
-    <span class="fg-label">CSM</span>
-    <select id="fCSM" onchange="applyFilters()"><option value="">All CSMs</option></select>
-  </div>
-  <div class="fg">
-    <span class="fg-label">Person (VIN)</span>
-    <select id="fPerson" onchange="applyFilters()"><option value="">All persons</option></select>
-  </div>
-  <button class="reset-btn" onclick="resetFilters()">Reset</button>
+  <div class="fg"><span class="fg-lbl">CSM</span><select id="fCSM" onchange="applyF()"><option value="">All CSMs</option></select></div>
+  <div class="fg"><span class="fg-lbl">Person (VIN)</span><select id="fPerson" onchange="applyF()"><option value="">All persons</option></select></div>
+  <button class="reset-btn" onclick="resetF()">Reset</button>
 </div>
 
-<div id="errBar" class="err-bar" style="margin:12px 24px 0"></div>
-
-<!-- MAIN CONTENT -->
 <div class="main">
 
-  <!-- KPI ROW 1 -->
-  <div class="sec-hdr">Overview</div>
-  <div class="kpi-grid" id="kpiRow1">
-    <div class="spin-wrap"><div class="spin"></div></div>
-  </div>
+  <div class="sec">Overview</div>
+  <div class="kgrid" id="krow1"><div class="loading"><div class="spin"></div></div></div>
+  <div class="kgrid" id="krow2" style="margin-bottom:20px"></div>
 
-  <!-- KPI ROW 2 -->
-  <div class="kpi2-grid" id="kpiRow2"></div>
-
-  <!-- THROUGHPUT TREND -->
+  <!-- TREND CHART -->
   <div class="card">
-    <div class="card-hdr">
-      <div>
-        <div class="card-title">VIN throughput trend</div>
-        <div class="card-sub" id="trendSub">Daily activity · VIN Level-1</div>
-      </div>
-      <div class="toggle-row" id="trendToggles">
+    <div class="chdr">
+      <div><div class="ctitle">VIN throughput trend</div><div class="csub" id="trendSub">Daily · VIN Level-1</div></div>
+      <div class="tgl-row" id="trendTgls">
         <button class="tgl" onclick="setTrend('7d',this)">7 Days</button>
         <button class="tgl" onclick="setTrend('30d',this)">30 Days</button>
         <button class="tgl on" onclick="setTrend('all',this)">All</button>
       </div>
     </div>
-    <div class="legend">
-      <span class="li"><span class="ld" style="background:var(--blue)"></span>VINs<span class="lval" id="lgVins">–</span></span>
-      <span class="li"><span class="ld" style="background:var(--green)"></span>Images<span class="lval" id="lgImg">–</span></span>
+    <div class="leg">
+      <span class="li"><span class="ld" style="background:var(--blue)"></span>VINs <span class="lv" id="lgV">–</span></span>
+      <span class="li"><span class="ld" style="background:var(--green)"></span>Images <span class="lv" id="lgI">–</span></span>
     </div>
-    <div style="position:relative;height:240px"><canvas id="trendChart" role="img" aria-label="VIN throughput trend line chart"></canvas></div>
+    <div style="position:relative;height:240px"><canvas id="trendC" role="img" aria-label="VIN throughput trend"></canvas></div>
   </div>
 
   <!-- PROGRESS CARDS -->
-  <div class="progress-cards" id="progressCards"></div>
+  <div class="pgrid" id="progCards"></div>
 
-  <!-- TWO COL: VIN BY PERSON + TOP ACCOUNTS -->
-  <div class="two-col">
-    <div class="card" style="margin-bottom:0">
-      <div class="card-hdr">
-        <div>
-          <div class="card-title">VINs by person</div>
-          <div class="card-sub">Click to filter</div>
-        </div>
-      </div>
-      <div class="hbar-list" id="personBars"></div>
+  <!-- PERSON + ACCOUNTS -->
+  <div class="two">
+    <div class="card" style="margin:0">
+      <div class="chdr"><div><div class="ctitle">VINs by person</div><div class="csub">Click to filter</div></div></div>
+      <div class="hlist" id="personH"></div>
     </div>
-    <div class="card" style="margin-bottom:0">
-      <div class="card-hdr">
-        <div>
-          <div class="card-title">Top accounts by VIN volume</div>
-          <div class="card-sub">Most active · Top 10</div>
-        </div>
-      </div>
-      <div class="hbar-list" id="acctBars"></div>
+    <div class="card" style="margin:0">
+      <div class="chdr"><div><div class="ctitle">Top accounts by VIN volume</div><div class="csub">Top 10</div></div></div>
+      <div class="hlist" id="acctH"></div>
     </div>
   </div>
   <div style="height:12px"></div>
 
-  <!-- TWO COL: DMS + PROCESSING TYPE -->
-  <div class="two-col">
-    <div class="card" style="margin-bottom:0">
-      <div class="card-hdr">
-        <div>
-          <div class="card-title">VINs by DMS platform</div>
-          <div class="card-sub">Activity from VIN Level-1</div>
-        </div>
-      </div>
-      <div class="hbar-list" id="dmsBars"></div>
+  <!-- DMS + PROCESSING TYPE -->
+  <div class="two">
+    <div class="card" style="margin:0">
+      <div class="chdr"><div><div class="ctitle">VINs by DMS platform</div><div class="csub">Click to filter</div></div></div>
+      <div class="hlist" id="dmsH"></div>
     </div>
-    <div class="card" style="margin-bottom:0">
-      <div class="card-hdr">
-        <div>
-          <div class="card-title">Processing type breakdown</div>
-          <div class="card-sub">DMS Download · Console · Live</div>
-        </div>
-      </div>
-      <div class="hbar-list" id="typeBars"></div>
+    <div class="card" style="margin:0">
+      <div class="chdr"><div><div class="ctitle">Processing type</div><div class="csub">DMS Download · Console · Live</div></div></div>
+      <div class="hlist" id="typeH"></div>
     </div>
   </div>
   <div style="height:12px"></div>
 
-  <!-- TWO COL: CSM + SEGMENT -->
-  <div class="two-col">
-    <div class="card" style="margin-bottom:0">
-      <div class="card-hdr">
-        <div>
-          <div class="card-title">Top CSMs by account count</div>
-          <div class="card-sub">Master sheet</div>
-        </div>
-      </div>
-      <div class="hbar-list" id="csmBars"></div>
+  <!-- CSM + BREAKDOWN -->
+  <div class="two">
+    <div class="card" style="margin:0">
+      <div class="chdr"><div><div class="ctitle">Top CSMs by account count</div><div class="csub">Master sheet</div></div></div>
+      <div class="hlist" id="csmH"></div>
     </div>
-    <div class="card" style="margin-bottom:0">
-      <div class="card-hdr">
-        <div>
-          <div class="card-title">Account breakdown</div>
-          <div class="card-sub">Segment · Type · Stage</div>
-        </div>
-      </div>
-      <div style="position:relative;height:260px"><canvas id="breakChart" role="img" aria-label="Account breakdown bar chart"></canvas></div>
+    <div class="card" style="margin:0">
+      <div class="chdr"><div><div class="ctitle">Account breakdown</div><div class="csub">Segment · Type · Stage</div></div></div>
+      <div style="position:relative;height:260px"><canvas id="breakC" role="img" aria-label="Account breakdown"></canvas></div>
     </div>
   </div>
   <div style="height:20px"></div>
 
   <!-- ACCOUNT TABLE -->
-  <div class="sec-hdr">Account list · <span id="tblCount">–</span> shown</div>
+  <div class="sec">Account list · <span id="tblCnt">–</span> shown</div>
   <div class="card" style="padding:0;overflow:hidden">
-    <div class="tbl-wrap">
+    <div class="tw">
       <table>
-        <thead>
-          <tr>
-            <th>Account</th><th>Stage</th><th>Type</th><th>Segment</th>
-            <th>CSM</th><th>DMS</th><th>SLA</th><th>MRR</th>
-            <th style="text-align:right">VINs (site)</th><th>Last activity</th>
-          </tr>
-        </thead>
-        <tbody id="acctTable">
-          <tr><td colspan="10" class="spin-wrap"><div class="spin"></div></td></tr>
-        </tbody>
+        <thead><tr>
+          <th>Account</th><th>Stage</th><th>Type</th><th>Segment</th>
+          <th>CSM</th><th>DMS</th><th>SLA</th><th>MRR</th>
+          <th style="text-align:right">VINs (site)</th><th>Last activity</th>
+        </tr></thead>
+        <tbody id="acctTbl"><tr><td colspan="10" class="loading"><div class="spin"></div></td></tr></tbody>
       </table>
     </div>
   </div>
 
-</div><!-- /main -->
+</div>
 
 <script>
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
-const SID    = '1_IwAbspIesz7p3VQ75MWPu-LkUQTvdE5yvamt816db0';
-const M_URL  = `https://docs.google.com/spreadsheets/d/${SID}/gviz/tq?tqx=out:csv&sheet=Master`;
-const V_URL  = `https://docs.google.com/spreadsheets/d/${SID}/gviz/tq?tqx=out:csv&sheet=Data%20VIN%20Level-1`;
+// ── CONFIG ─────────────────────────────────────────────────────────────────
+const SID   = '1_IwAbspIesz7p3VQ75MWPu-LkUQTvdE5yvamt816db0';
+const M_URL = `https://docs.google.com/spreadsheets/d/${SID}/gviz/tq?tqx=out:csv&sheet=Master`;
+const V_URL = `https://docs.google.com/spreadsheets/d/${SID}/gviz/tq?tqx=out:csv&sheet=Data%20VIN%20Level-1`;
 
-// ─── STATE ────────────────────────────────────────────────────────────────────
-let mAll=[], vAll=[], charts={};
-let trendMode='all', personFilter=null;
+// ── STATE ──────────────────────────────────────────────────────────────────
+let mAll=[], vAll=[], charts={}, tMode='all';
 
-// ─── DATE UTILS ──────────────────────────────────────────────────────────────
+// ── DATE UTILS ─────────────────────────────────────────────────────────────
 const MON={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,june:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
 function parseVD(s){
-  if(!s)return null;
+  if(!s) return null;
   const p=s.trim().split('-');
-  if(p.length!==3)return null;
+  if(p.length!==3) return null;
   const m=MON[p[1].toLowerCase()];
-  if(m===undefined)return null;
+  if(m===undefined) return null;
   const d=new Date(+p[2],m,+p[0]);
   return isNaN(d)?null:d;
 }
 function toISO(d){return d.toISOString().slice(0,10)}
 function fromISO(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
 function fmtD(d){return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}
-function fmtM(d){return d.toLocaleDateString('en-GB',{month:"short",year:"2-digit"}).replace(' ',"'")}
 
-// ─── PARSERS ─────────────────────────────────────────────────────────────────
-function parseRow(r){
+// ── PARSE ROW (handles quoted CSV) ─────────────────────────────────────────
+function pr(r){
   const c=[];let cur='',q=false;
   for(const ch of r){if(ch==='"')q=!q;else if(ch===','&&!q){c.push(cur.trim());cur='';}else cur+=ch;}
   c.push(cur.trim());return c;
 }
+
+// ── NORMALIZE TYPE ─────────────────────────────────────────────────────────
 function normT(v){
   const s=(v||'').toUpperCase().replace(/\s/g,'');
   if(s.includes('INDEPENDENT'))return'INDEPENDENT';
@@ -403,177 +299,228 @@ function normT(v){
   if(s.includes('RESELLER'))return'RESELLER';
   return s;
 }
-function cleanCSM(v){
-  const s=(v||'').trim();
-  return(!s||s.startsWith('$')||['Live','OB','Support'].includes(s))?'':s;
-}
+
+// ── PARSE MASTER ───────────────────────────────────────────────────────────
+// VERIFIED column positions (from live sheet analysis):
+// [0]  Enterprise Name
+// [1]  Enterprise ID
+// [2]  Team ID
+// [3]  Account sub type
+// [4]  Input Source
+// [5]  Enterprise Qc/No Qc
+// [6]  Tentative VIN count (website)
+// [11] Client Delivery SLA
+// [12] ARR
+// [13] MRR
+// [14] Account Stage  (Live / OB)
+// [15] CSM
+// [16] Reviewer
+// [17] DMS
+// [19] Account Start Date
+// [20] Last Activity
+// [22] Under Review header BUT actually contains Segment (SMB/Ent/Mid) for some rows
+// [36] customer_segment  ← primary segment column (Ent/SMB/Mid) — 59 filled
 function parseMaster(rows){
-  return rows.slice(1).filter(r=>r[0]&&r[0].trim()).map(r=>({
-    name:(r[0]||'').trim(),entId:(r[1]||'').trim(),
-    subType:normT(r[3]),sla:(r[11]||'').trim(),
-    mrr:(r[13]||'').trim(),stage:(r[14]||'').trim(),
-    csm:cleanCSM(r[15]),dms:(r[17]||'').trim(),
-    vinCount:parseInt(r[6])||0,lastActivity:(r[20]||'').trim(),
-    segment:(r[r.length-1]||'').replace(/\r/g,'').trim()
-  }));
+  return rows.slice(1).filter(r=>r[0]&&r[0].trim()).map(r=>{
+    // Segment: prefer col 36, fallback to col 22
+    const seg36=(r[36]||'').replace(/\r/g,'').trim();
+    const seg22=(r[22]||'').trim();
+    const segment = (['Ent','Mid','SMB'].includes(seg36) ? seg36 :
+                     ['Ent','Mid','SMB'].includes(seg22) ? seg22 : '');
+    // CSM: skip if it looks like $ values or known non-CSM strings
+    const rawCSM=(r[15]||'').trim();
+    const csm = (rawCSM && !rawCSM.startsWith('$') && !['Live','OB','Support',''].includes(rawCSM)) ? rawCSM : '';
+    return {
+      name:      (r[0]||'').trim(),
+      entId:     (r[1]||'').trim(),
+      teamId:    (r[2]||'').trim(),
+      subType:   normT(r[3]),
+      inputSrc:  (r[4]||'').trim(),
+      sla:       (r[11]||'').trim(),
+      arr:       (r[12]||'').trim(),
+      mrr:       (r[13]||'').trim(),
+      stage:     (r[14]||'').trim(),
+      csm,
+      reviewer:  (r[16]||'').trim(),
+      dms:       (r[17]||'').trim(),
+      startDate: (r[19]||'').trim(),
+      lastAct:   (r[20]||'').trim(),
+      vinCount:  parseInt(r[6])||0,
+      segment,
+    };
+  });
 }
+
+// ── PARSE VIN ──────────────────────────────────────────────────────────────
+// [0]  Date  (DD-Mon-YYYY format)
+// [1]  Enterprise ID
+// [2]  Team ID
+// [3]  Account Sub Type
+// [4]  DMS
+// [5]  Person Responsible
+// [6]  Account Name
+// [7]  VIN / Stock No.
+// [8]  Image Count
+// [9]  Type (DMS Download / Console Upload / Console Download / Live / No Data Available)
+// [11] customer_segment
 function parseVIN(rows){
   return rows.slice(1).filter(r=>r[0]&&r[0].trim()).map(r=>({
-    rawDate:(r[0]||'').trim(),date:parseVD(r[0]),
-    subType:normT(r[3]),dms:(r[4]||'').trim(),
-    person:(r[5]||'').trim(),accountName:(r[6]||'').trim(),
-    imageCount:parseInt(r[8])||0,type:(r[9]||'').trim(),
-    segment:(r[11]||'').trim()
+    rawDate:  (r[0]||'').trim(),
+    date:     parseVD(r[0]),
+    subType:  normT(r[3]),
+    dms:      (r[4]||'').trim(),
+    person:   (r[5]||'').trim(),
+    account:  (r[6]||'').trim(),
+    vin:      (r[7]||'').trim(),
+    images:   parseInt(r[8])||0,
+    type:     (r[9]||'').trim(),
+    segment:  (r[11]||'').trim(),
   })).filter(r=>r.date);
 }
 
-// ─── FILTER HELPERS ──────────────────────────────────────────────────────────
+// ── FILTER HELPERS ─────────────────────────────────────────────────────────
 function getF(){
   return{
-    from:document.getElementById('fFrom').value?fromISO(document.getElementById('fFrom').value):null,
-    to:  document.getElementById('fTo').value?fromISO(document.getElementById('fTo').value):null,
-    dms: document.getElementById('fDMS').value,
-    stage:document.getElementById('fStage').value,
-    seg:document.getElementById('fSeg').value,
-    type:document.getElementById('fType').value,
-    csm:document.getElementById('fCSM').value,
-    person:document.getElementById('fPerson').value,
+    from:   document.getElementById('fFrom').value  ? fromISO(document.getElementById('fFrom').value)  : null,
+    to:     document.getElementById('fTo').value    ? fromISO(document.getElementById('fTo').value)    : null,
+    dms:    document.getElementById('fDMS').value,
+    stage:  document.getElementById('fStage').value,
+    seg:    document.getElementById('fSeg').value,
+    type:   document.getElementById('fType').value,
+    csm:    document.getElementById('fCSM').value,
+    person: document.getElementById('fPerson').value,
   };
 }
-function filterVIN(f,extra){
+function fVIN(f){
   return vAll.filter(r=>{
-    if(f.from && r.date<f.from)return false;
+    if(f.from){if(r.date<f.from)return false;}
     if(f.to){const t=new Date(f.to);t.setHours(23,59,59,999);if(r.date>t)return false;}
-    if(f.dms && r.dms!==f.dms)return false;
-    if(f.type && r.subType!==f.type)return false;
-    if(f.person && r.person!==f.person)return false;
-    if(extra&&extra.person && r.person!==extra.person)return false;
+    if(f.dms    && r.dms    !==f.dms)    return false;
+    if(f.type   && r.subType!==f.type)   return false;
+    if(f.person && r.person !==f.person) return false;
     return true;
   });
 }
-function filterMaster(f){
+function fMaster(f){
   return mAll.filter(r=>{
-    if(f.dms && r.dms!==f.dms)return false;
-    if(f.stage && r.stage!==f.stage)return false;
-    if(f.seg && r.segment!==f.seg)return false;
-    if(f.type && r.subType!==f.type)return false;
-    if(f.csm && r.csm!==f.csm)return false;
+    if(f.dms   && r.dms    !==f.dms)   return false;
+    if(f.stage && r.stage  !==f.stage) return false;
+    if(f.seg   && r.segment!==f.seg)   return false;
+    if(f.type  && r.subType!==f.type)  return false;
+    if(f.csm   && r.csm    !==f.csm)   return false;
     return true;
   });
 }
-
-function applyFilters(){
-  const f=getF();
-  renderAll(filterMaster(f), filterVIN(f));
-}
-function resetFilters(){
+function applyF(){const f=getF();renderAll(fMaster(f),fVIN(f));}
+function resetF(){
   ['fFrom','fTo','fDMS','fStage','fSeg','fType','fCSM','fPerson'].forEach(id=>document.getElementById(id).value='');
   document.querySelectorAll('.qb').forEach(b=>b.classList.remove('on'));
   document.querySelector('.qb:last-child').classList.add('on');
-  personFilter=null;
   renderAll(mAll,vAll);
 }
-
-// quick date helpers
-function setQuick(p,btn){
-  document.querySelectorAll('.qb').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  const today=new Date();today.setHours(0,0,0,0);
-  if(p==='all'){document.getElementById('fFrom').value='';document.getElementById('fTo').value='';}
-  else if(p==='today'){document.getElementById('fFrom').value=toISO(today);document.getElementById('fTo').value=toISO(today);}
-  else if(p==='7d'){const d=new Date(today);d.setDate(d.getDate()-6);document.getElementById('fFrom').value=toISO(d);document.getElementById('fTo').value=toISO(today);}
-  else if(p==='30d'){const d=new Date(today);d.setDate(d.getDate()-29);document.getElementById('fFrom').value=toISO(d);document.getElementById('fTo').value=toISO(today);}
-  else if(p==='mtd'){const d=new Date(today.getFullYear(),today.getMonth(),1);document.getElementById('fFrom').value=toISO(d);document.getElementById('fTo').value=toISO(today);}
-  applyFilters();
+function setQ(p,btn){
+  document.querySelectorAll('.qb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  const t=new Date();t.setHours(0,0,0,0);
+  const fi=document.getElementById('fFrom'), ti=document.getElementById('fTo');
+  if(p==='all'){fi.value='';ti.value='';}
+  else if(p==='today'){fi.value=toISO(t);ti.value=toISO(t);}
+  else if(p==='7d'){const d=new Date(t);d.setDate(d.getDate()-6);fi.value=toISO(d);ti.value=toISO(t);}
+  else if(p==='30d'){const d=new Date(t);d.setDate(d.getDate()-29);fi.value=toISO(d);ti.value=toISO(t);}
+  else if(p==='mtd'){fi.value=toISO(new Date(t.getFullYear(),t.getMonth(),1));ti.value=toISO(t);}
+  applyF();
 }
-function setTrend(mode,btn){
-  document.querySelectorAll('#trendToggles .tgl').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  trendMode=mode;
-  applyFilters();
+function setTrend(m,btn){
+  document.querySelectorAll('#trendTgls .tgl').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  tMode=m;applyF();
 }
 
-// ─── CHART HELPERS ────────────────────────────────────────────────────────────
+// ── CHART UTILS ────────────────────────────────────────────────────────────
 const GC=()=>'rgba(255,255,255,0.05)';
 const TF=()=>({size:11,family:'-apple-system,sans-serif'});
 const TC='#515870';
 const BS={
   y:{ticks:{font:TF(),color:TC},grid:{color:GC()},border:{display:false}},
-  x:{ticks:{font:TF(),color:TC,autoSkip:true,maxTicksLimit:14},grid:{display:false},border:{display:false}}
+  x:{ticks:{font:TF(),color:TC,autoSkip:true,maxTicksLimit:16},grid:{display:false},border:{display:false}}
 };
 function kc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+const TTP={backgroundColor:'#1c1f2e',borderColor:'rgba(255,255,255,0.12)',borderWidth:1,titleColor:'#dde1ef',bodyColor:'#8b93ad',padding:10};
 
-// ─── KPI ROW 1 ───────────────────────────────────────────────────────────────
+// ── KPI ROW 1: Master-based ─────────────────────────────────────────────────
 function renderKPI(m,v){
-  const live=m.filter(r=>r.stage==='Live').length;
-  const ob=m.filter(r=>r.stage==='OB').length;
-  const totImg=v.reduce((s,r)=>s+r.imageCount,0);
-  const uAccts=new Set(v.map(r=>r.accountName)).size;
-  const totSite=m.reduce((s,r)=>s+r.vinCount,0);
-  const ent=m.filter(r=>r.segment==='Ent').length;
-  const smb=m.filter(r=>r.segment==='SMB').length;
-  document.getElementById('kpiRow1').innerHTML=`
-    <div class="kpi"><div class="kpi-label">Total enterprises</div><div class="kpi-val c-b">${m.length}</div><div class="kpi-sub">${live} live · ${ob} OB</div></div>
-    <div class="kpi"><div class="kpi-label">VIN activities</div><div class="kpi-val c-g">${v.length.toLocaleString()}</div><div class="kpi-sub">${uAccts} active accounts</div></div>
-    <div class="kpi"><div class="kpi-label">Images processed</div><div class="kpi-val c-t">${totImg.toLocaleString()}</div><div class="kpi-sub">avg ${v.length?Math.round(totImg/v.length):0} per VIN</div></div>
-    <div class="kpi"><div class="kpi-label">Live accounts</div><div class="kpi-val c-g">${live}</div><div class="kpi-sub">${m.length?Math.round(live/m.length*100):0}% of portfolio</div></div>
-    <div class="kpi kpi-arrow">↗<div class="kpi-label">OB accounts</div><div class="kpi-val c-a">${ob}</div><div class="kpi-sub">onboarding</div></div>
-    <div class="kpi"><div class="kpi-label">Est. VINs (website)</div><div class="kpi-val c-p">${totSite.toLocaleString()}</div><div class="kpi-sub">across all accounts</div></div>
-    <div class="kpi"><div class="kpi-label">Enterprise accts</div><div class="kpi-val c-p">${ent}</div><div class="kpi-sub">${smb} SMB · ${m.filter(r=>r.segment==='Mid').length} Mid</div></div>
+  // Enterprise counts
+  const totalRows = m.length;                                   // 180 rooftops/teams
+  const uniqueEnts = new Set(m.map(r=>r.entId).filter(Boolean)).size; // unique enterprise IDs
+  const live  = m.filter(r=>r.stage==='Live').length;
+  const ob    = m.filter(r=>r.stage==='OB').length;
+
+  // VIN activity counts from VIN sheet
+  const totalVINs  = v.length;
+  const totalImgs  = v.reduce((s,r)=>s+r.images,0);
+  const uAccts     = new Set(v.map(r=>r.account).filter(Boolean)).size;
+  const totVinSite = m.reduce((s,r)=>s+r.vinCount,0);
+
+  // Segment counts from Master (using corrected segment field)
+  const ent = m.filter(r=>r.segment==='Ent').length;
+  const mid = m.filter(r=>r.segment==='Mid').length;
+  const smb = m.filter(r=>r.segment==='SMB').length;
+
+  document.getElementById('krow1').innerHTML=`
+    <div class="kc"><div class="kc-lbl">Total rooftops</div><div class="kc-val cb">${totalRows}</div><div class="kc-sub">${uniqueEnts} unique enterprises</div></div>
+    <div class="kc"><div class="kc-lbl">Live accounts</div><div class="kc-val cg">${live}</div><div class="kc-sub">${totalRows?Math.round(live/totalRows*100):0}% of portfolio</div></div>
+    <div class="kc"><div class="kc-lbl">OB accounts</div><div class="kc-val ca">${ob}</div><div class="kc-sub">onboarding</div></div>
+    <div class="kc"><div class="kc-lbl">VIN activities</div><div class="kc-val cg">${totalVINs.toLocaleString()}</div><div class="kc-sub">${uAccts} accounts active</div></div>
+    <div class="kc"><div class="kc-lbl">Images processed</div><div class="kc-val ct">${totalImgs.toLocaleString()}</div><div class="kc-sub">avg ${totalVINs?Math.round(totalImgs/totalVINs):0} per VIN</div></div>
+    <div class="kc"><div class="kc-lbl">Est. VINs (website)</div><div class="kc-val cp">${totVinSite.toLocaleString()}</div><div class="kc-sub">across all accounts</div></div>
+    <div class="kc"><div class="kc-lbl">Segment split</div><div class="kc-val cp">${ent}</div><div class="kc-sub">Ent · ${mid} Mid · ${smb} SMB</div></div>
   `;
-  // row 2 — processing breakdown
+
+  // KPI row 2: processing types from VIN sheet
   const byType={};v.forEach(r=>{if(r.type)byType[r.type]=(byType[r.type]||0)+1;});
-  const dmsDown=byType['DMS Download']||0;
-  const conUp=byType['Console Upload']||0;
-  const conDn=byType['Console Download']||0;
-  const live2=byType['Live']||0;
-  const noData=byType['No Data Available']||0;
-  document.getElementById('kpiRow2').innerHTML=`
-    <div class="kpi2"><div class="kpi2-label">DMS Download</div><div class="kpi2-val c-b">${dmsDown}</div><div class="kpi2-sub">${v.length?Math.round(dmsDown/v.length*100):0}% of VINs</div></div>
-    <div class="kpi2"><div class="kpi2-label">Console Upload</div><div class="kpi2-val c-g">${conUp}</div><div class="kpi2-sub">${v.length?Math.round(conUp/v.length*100):0}% of VINs</div></div>
-    <div class="kpi2"><div class="kpi2-label">Console Download</div><div class="kpi2-val c-t">${conDn}</div><div class="kpi2-sub">${v.length?Math.round(conDn/v.length*100):0}% of VINs</div></div>
-    <div class="kpi2"><div class="kpi2-label">Live</div><div class="kpi2-val c-g">${live2}</div><div class="kpi2-sub">${v.length?Math.round(live2/v.length*100):0}% of VINs</div></div>
-    <div class="kpi2"><div class="kpi2-label">No data available</div><div class="kpi2-val c-c">${noData}</div><div class="kpi2-sub">${v.length?Math.round(noData/v.length*100):0}% of VINs</div></div>
+  const dmsD  = byType['DMS Download']||0;
+  const conU  = byType['Console Upload']||0;
+  const conD  = byType['Console Download']||0;
+  const liveV = byType['Live']||0;
+  const noD   = byType['No Data Available']||0;
+  const n=v.length||1;
+  document.getElementById('krow2').innerHTML=`
+    <div class="kc" style="padding:13px 18px 11px"><div class="kc-lbl">DMS Download</div><div class="kc-val cb" style="font-size:26px">${dmsD}</div><div class="kc-sub">${Math.round(dmsD/n*100)}% of VINs</div></div>
+    <div class="kc" style="padding:13px 18px 11px"><div class="kc-lbl">Console Upload</div><div class="kc-val cg" style="font-size:26px">${conU}</div><div class="kc-sub">${Math.round(conU/n*100)}% of VINs</div></div>
+    <div class="kc" style="padding:13px 18px 11px"><div class="kc-lbl">Console Download</div><div class="kc-val ct" style="font-size:26px">${conD}</div><div class="kc-sub">${Math.round(conD/n*100)}% of VINs</div></div>
+    <div class="kc" style="padding:13px 18px 11px"><div class="kc-lbl">Live</div><div class="kc-val cg" style="font-size:26px">${liveV}</div><div class="kc-sub">${Math.round(liveV/n*100)}% of VINs</div></div>
+    <div class="kc" style="padding:13px 18px 11px"><div class="kc-lbl">No data available</div><div class="kc-val cc" style="font-size:26px">${noD}</div><div class="kc-sub">${Math.round(noD/n*100)}% of VINs</div></div>
   `;
 }
 
-// ─── TREND CHART ─────────────────────────────────────────────────────────────
+// ── TREND CHART ─────────────────────────────────────────────────────────────
 function renderTrend(v){
-  // Apply trend window on top of current filtered data
   let data=[...v].sort((a,b)=>a.date-b.date);
-  if(trendMode!=='all'&&data.length){
+  if(tMode!=='all'&&data.length){
     const last=data[data.length-1].date;
     const from=new Date(last);
-    if(trendMode==='7d')from.setDate(from.getDate()-6);
-    else if(trendMode==='30d')from.setDate(from.getDate()-29);
+    if(tMode==='7d')from.setDate(from.getDate()-6);
+    else if(tMode==='30d')from.setDate(from.getDate()-29);
     data=data.filter(r=>r.date>=from);
   }
   const byDay={};
-  data.forEach(r=>{
-    const k=toISO(r.date);
-    if(!byDay[k])byDay[k]={v:0,i:0};
-    byDay[k].v++;byDay[k].i+=r.imageCount;
-  });
+  data.forEach(r=>{const k=toISO(r.date);if(!byDay[k])byDay[k]={v:0,i:0};byDay[k].v++;byDay[k].i+=r.images;});
   const days=Object.keys(byDay).sort();
-  const labels=days.map(d=>fmtD(fromISO(d)));
-  const vins=days.map(d=>byDay[d].v);
-  const imgs=days.map(d=>byDay[d].i);
-  const tv=vins.reduce((a,b)=>a+b,0);
-  const ti=imgs.reduce((a,b)=>a+b,0);
-  document.getElementById('lgVins').textContent=tv.toLocaleString();
-  document.getElementById('lgImg').textContent=ti.toLocaleString();
+  const vins=days.map(d=>byDay[d].v), imgs=days.map(d=>byDay[d].i);
+  const tv=vins.reduce((a,b)=>a+b,0), ti=imgs.reduce((a,b)=>a+b,0);
+  document.getElementById('lgV').textContent=tv.toLocaleString();
+  document.getElementById('lgI').textContent=ti.toLocaleString();
   document.getElementById('trendSub').textContent=
-    days.length?`${fmtD(fromISO(days[0]))} → ${fmtD(fromISO(days[days.length-1]))} · ${tv} VINs`:'No data in range';
-  kc('trendChart');
+    days.length?`${fmtD(fromISO(days[0]))} → ${fmtD(fromISO(days[days.length-1]))} · ${tv} VINs`:'No data';
+  kc('trendC');
   if(!days.length)return;
-  charts['trendChart']=new Chart(document.getElementById('trendChart'),{
+  const labels=days.map(d=>fmtD(fromISO(d)));
+  charts['trendC']=new Chart(document.getElementById('trendC'),{
     type:'line',
     data:{labels,datasets:[
       {label:'VINs',data:vins,borderColor:'#6c9fff',backgroundColor:'rgba(108,159,255,0.08)',fill:true,tension:.35,pointRadius:days.length>60?0:3,pointBackgroundColor:'#6c9fff',borderWidth:2},
-      {label:'Images',data:imgs,borderColor:'#3ecf8e',backgroundColor:'rgba(62,207,142,0.06)',fill:true,tension:.35,pointRadius:days.length>60?0:3,pointBackgroundColor:'#3ecf8e',borderWidth:2,yAxisID:'y2',borderDash:days.length>30?[]:[]}
+      {label:'Images',data:imgs,borderColor:'#3ecf8e',backgroundColor:'rgba(62,207,142,0.06)',fill:true,tension:.35,pointRadius:days.length>60?0:3,pointBackgroundColor:'#3ecf8e',borderWidth:2,yAxisID:'y2'}
     ]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f2e',borderColor:'rgba(255,255,255,0.12)',borderWidth:1,titleColor:'#dde1ef',bodyColor:'#8b93ad',padding:10}},
+      plugins:{legend:{display:false},tooltip:TTP},
       scales:{
         y:{...BS.y,position:'left'},
         y2:{...BS.y,position:'right',grid:{display:false}},
@@ -582,130 +529,90 @@ function renderTrend(v){
   });
 }
 
-// ─── PROGRESS CARDS ──────────────────────────────────────────────────────────
-function renderProgress(m,v){
+// ── PROGRESS CARDS ──────────────────────────────────────────────────────────
+function renderProg(m,v){
   const live=m.filter(r=>r.stage==='Live').length;
   const ob=m.filter(r=>r.stage==='OB').length;
-  const total=m.length||1;
-  const livePct=Math.round(live/total*100);
-  const obPct=Math.round(ob/total*100);
+  const tot=m.length||1;
+  const livePct=Math.round(live/tot*100), obPct=Math.round(ob/tot*100);
 
-  const byType={};v.forEach(r=>{if(r.type)byType[r.type]=(byType[r.type]||0)+1;});
   const withData=v.filter(r=>r.type!=='No Data Available').length;
-  const noData=byType['No Data Available']||0;
-  const dataRate=v.length?Math.round(withData/v.length*100):0;
+  const noData=(v.filter(r=>r.type==='No Data Available').length);
+  const n=v.length||1;
+  const dataPct=Math.round(withData/n*100);
+  const noPct=Math.round(noData/n*100);
 
-  const bySeg={Ent:0,Mid:0,SMB:0};
-  m.forEach(r=>{if(bySeg[r.segment]!==undefined)bySeg[r.segment]++;});
-  const entPct=Math.round(bySeg.Ent/total*100);
-  const midPct=Math.round(bySeg.Mid/total*100);
-  const smbPct=Math.round(bySeg.SMB/total*100);
+  const seg={Ent:0,Mid:0,SMB:0};
+  m.forEach(r=>{if(seg[r.segment]!==undefined)seg[r.segment]++;});
+  const entP=Math.round(seg.Ent/tot*100), midP=Math.round(seg.Mid/tot*100), smbP=Math.round(seg.SMB/tot*100);
 
-  document.getElementById('progressCards').innerHTML=`
-    <div class="prog-card">
-      <div class="prog-nums">
-        <div><span class="prog-big c-g">${live}</span> <span style="font-size:13px;color:var(--text2);font-weight:600">${livePct}%</span></div>
-        <div style="text-align:right"><span class="prog-big c-a">${ob}</span> <span style="font-size:13px;color:var(--text2);font-weight:600">${obPct}%</span></div>
-      </div>
-      <div class="prog-label-sm">Account stage</div>
-      <div class="prog-bar-wrap">
-        <div class="prog-bar"><div class="prog-seg" style="width:${livePct}%;background:var(--green)"></div><div class="prog-seg" style="width:${obPct}%;background:var(--amber)"></div></div>
-        <div class="prog-range"><span>0%</span><span>100%</span></div>
-      </div>
-      <div class="prog-foot">Live rate: <strong class="c-g">${livePct}%</strong> &nbsp;·&nbsp; ${live} live · ${ob} OB</div>
+  document.getElementById('progCards').innerHTML=`
+    <div class="pc">
+      <div class="pnums"><div><span class="pbig cg">${live}</span> <span class="ppct">${livePct}%</span></div><div style="text-align:right"><span class="pbig ca">${ob}</span> <span class="ppct">${obPct}%</span></div></div>
+      <div class="plbl">Account stage</div>
+      <div class="pbar"><div class="pseg" style="width:${livePct}%;background:var(--green)"></div><div class="pseg" style="width:${obPct}%;background:var(--amber)"></div></div>
+      <div class="prange"><span>0%</span><span>100%</span></div>
+      <div class="pfoot">Live rate: <strong class="cg">${livePct}%</strong> &nbsp;·&nbsp; ${live} live · ${ob} OB of ${tot} total</div>
     </div>
-    <div class="prog-card">
-      <div class="prog-nums">
-        <div><span class="prog-big c-b">${withData}</span> <span style="font-size:13px;color:var(--text2);font-weight:600">${dataRate}%</span></div>
-        <div style="text-align:right"><span class="prog-big c-c">${noData}</span> <span style="font-size:13px;color:var(--text2);font-weight:600">${v.length?Math.round(noData/v.length*100):0}%</span></div>
-      </div>
-      <div class="prog-label-sm">Data availability</div>
-      <div class="prog-bar-wrap">
-        <div class="prog-bar"><div class="prog-seg" style="width:${dataRate}%;background:var(--blue)"></div><div class="prog-seg" style="width:${v.length?Math.round(noData/v.length*100):0}%;background:var(--coral)"></div></div>
-        <div class="prog-range"><span>0%</span><span>100%</span></div>
-      </div>
-      <div class="prog-foot">Data rate: <strong class="c-b">${dataRate}%</strong> &nbsp;·&nbsp; ${withData} with data · ${noData} no data</div>
+    <div class="pc">
+      <div class="pnums"><div><span class="pbig cb">${withData}</span> <span class="ppct">${dataPct}%</span></div><div style="text-align:right"><span class="pbig cc">${noData}</span> <span class="ppct">${noPct}%</span></div></div>
+      <div class="plbl">Data availability</div>
+      <div class="pbar"><div class="pseg" style="width:${dataPct}%;background:var(--blue)"></div><div class="pseg" style="width:${noPct}%;background:var(--coral)"></div></div>
+      <div class="prange"><span>0%</span><span>100%</span></div>
+      <div class="pfoot">Data rate: <strong class="cb">${dataPct}%</strong> &nbsp;·&nbsp; ${withData} with data · ${noData} no data</div>
     </div>
-    <div class="prog-card">
-      <div class="prog-nums">
-        <div><span class="prog-big c-p">${bySeg.Ent}</span> <span style="font-size:13px;color:var(--text2);font-weight:600">${entPct}%</span></div>
-        <div style="text-align:right"><span class="prog-big c-b">${bySeg.SMB}</span> <span style="font-size:13px;color:var(--text2);font-weight:600">${smbPct}%</span></div>
-      </div>
-      <div class="prog-label-sm">Segment split</div>
-      <div class="prog-bar-wrap">
-        <div class="prog-bar">
-          <div class="prog-seg" style="width:${entPct}%;background:var(--purple)"></div>
-          <div class="prog-seg" style="width:${midPct}%;background:var(--teal)"></div>
-          <div class="prog-seg" style="width:${smbPct}%;background:var(--blue)"></div>
-        </div>
-        <div class="prog-range"><span>0%</span><span>100%</span></div>
-      </div>
-      <div class="prog-foot">Ent: <strong class="c-p">${bySeg.Ent}</strong> &nbsp;·&nbsp; Mid: <strong class="c-t">${bySeg.Mid}</strong> &nbsp;·&nbsp; SMB: <strong class="c-b">${bySeg.SMB}</strong></div>
+    <div class="pc">
+      <div class="pnums"><div><span class="pbig cp">${seg.Ent}</span> <span class="ppct">${entP}%</span></div><div style="text-align:right"><span class="pbig cb">${seg.SMB}</span> <span class="ppct">${smbP}%</span></div></div>
+      <div class="plbl">Segment split (${seg.Ent+seg.Mid+seg.SMB} tagged)</div>
+      <div class="pbar"><div class="pseg" style="width:${entP}%;background:var(--purple)"></div><div class="pseg" style="width:${midP}%;background:var(--teal)"></div><div class="pseg" style="width:${smbP}%;background:var(--blue)"></div></div>
+      <div class="prange"><span>0%</span><span>100%</span></div>
+      <div class="pfoot">Ent: <strong class="cp">${seg.Ent}</strong> · Mid: <strong class="ct">${seg.Mid}</strong> · SMB: <strong class="cb">${seg.SMB}</strong></div>
     </div>
   `;
 }
 
-// ─── HORIZONTAL BAR HELPER ───────────────────────────────────────────────────
-function hbars(containerId, entries, color, filterFn){
+// ── HBAR HELPER ─────────────────────────────────────────────────────────────
+function hbars(id,entries,color,clickFn){
   const max=entries[0]?entries[0][1]:1;
-  document.getElementById(containerId).innerHTML=entries.map(([label,count])=>`
-    <div class="hbar-row" style="cursor:${filterFn?'pointer':'default'}" onclick="${filterFn?`${filterFn}('${label.replace(/'/g,"\\'")}')`:''}" title="${label}">
-      <div class="hbar-label">${label}</div>
-      <div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(count/max*100)}%;background:${color}"></div></div>
-      <div class="hbar-count">${count.toLocaleString()}</div>
+  document.getElementById(id).innerHTML=entries.map(([lbl,cnt])=>`
+    <div class="hr" ${clickFn?`style="cursor:pointer" onclick="${clickFn}('${lbl.replace(/'/g,"\\'")}')" title="${lbl}"`:''}> 
+      <div class="hl">${lbl}</div>
+      <div class="ht"><div class="hf" style="width:${Math.round(cnt/max*100)}%;background:${color}"></div></div>
+      <div class="hc">${cnt.toLocaleString()}</div>
     </div>`).join('');
 }
 
-// ─── PERSON BARS ─────────────────────────────────────────────────────────────
-function renderPersonBars(v){
+// ── INDIVIDUAL RENDERS ──────────────────────────────────────────────────────
+function renderPersonH(v){
   const c={};v.forEach(r=>{if(r.person)c[r.person]=(c[r.person]||0)+1;});
-  const e=Object.entries(c).sort((a,b)=>b[1]-a[1]);
-  hbars('personBars',e,'var(--blue)','filterByPerson');
+  hbars('personH',Object.entries(c).sort((a,b)=>b[1]-a[1]),'var(--blue)','filterPerson');
 }
-function filterByPerson(p){
-  document.getElementById('fPerson').value=p;
-  applyFilters();
-}
+function filterPerson(p){document.getElementById('fPerson').value=p;applyF();}
 
-// ─── TOP ACCOUNTS ────────────────────────────────────────────────────────────
-function renderAcctBars(v){
-  const c={};v.forEach(r=>{if(r.accountName)c[r.accountName]=(c[r.accountName]||0)+1;});
-  const e=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  hbars('acctBars',e,'var(--coral)',null);
+function renderAcctH(v){
+  const c={};v.forEach(r=>{if(r.account)c[r.account]=(c[r.account]||0)+1;});
+  hbars('acctH',Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,10),'var(--coral)',null);
 }
-
-// ─── DMS BARS ────────────────────────────────────────────────────────────────
-function renderDMSBars(v){
+function renderDMSH(v){
   const c={};v.forEach(r=>{if(r.dms)c[r.dms]=(c[r.dms]||0)+1;});
-  const e=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,12);
-  hbars('dmsBars',e,'var(--teal)','filterByDMS');
+  hbars('dmsH',Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,12),'var(--teal)','filterDMS');
 }
-function filterByDMS(d){
-  document.getElementById('fDMS').value=d;
-  applyFilters();
-}
+function filterDMS(d){document.getElementById('fDMS').value=d;applyF();}
 
-// ─── TYPE BARS ───────────────────────────────────────────────────────────────
-function renderTypeBars(v){
+function renderTypeH(v){
   const c={};v.forEach(r=>{if(r.type)c[r.type]=(c[r.type]||0)+1;});
-  const e=Object.entries(c).sort((a,b)=>b[1]-a[1]);
-  hbars('typeBars',e,'var(--purple)',null);
+  hbars('typeH',Object.entries(c).sort((a,b)=>b[1]-a[1]),'var(--purple)',null);
 }
-
-// ─── CSM BARS ────────────────────────────────────────────────────────────────
-function renderCSMBars(m){
+function renderCSMH(m){
   const c={};m.forEach(r=>{if(r.csm)c[r.csm]=(c[r.csm]||0)+1;});
-  const e=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  hbars('csmBars',e,'var(--amber)',null);
+  hbars('csmH',Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,12),'var(--amber)',null);
 }
-
-// ─── BREAKDOWN CHART ─────────────────────────────────────────────────────────
 function renderBreak(m){
   const seg={Ent:0,Mid:0,SMB:0};m.forEach(r=>{if(seg[r.segment]!==undefined)seg[r.segment]++;});
   const typ={INDEPENDENT:0,FRANCHISE:0,RESELLER:0};m.forEach(r=>{if(typ[r.subType]!==undefined)typ[r.subType]++;});
   const stg={Live:0,OB:0};m.forEach(r=>{if(stg[r.stage]!==undefined)stg[r.stage]++;});
-  kc('breakChart');
-  charts['breakChart']=new Chart(document.getElementById('breakChart'),{
+  kc('breakC');
+  charts['breakC']=new Chart(document.getElementById('breakC'),{
     type:'bar',
     data:{
       labels:['Ent','Mid','SMB','Indep.','Franchise','Reseller','Live','OB'],
@@ -715,48 +622,47 @@ function renderBreak(m){
         borderRadius:4,borderWidth:0
       }]
     },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
-      tooltip:{backgroundColor:'#1c1f2e',borderColor:'rgba(255,255,255,0.12)',borderWidth:1,titleColor:'#dde1ef',bodyColor:'#8b93ad',padding:10}},
-      scales:{...BS,x:{...BS.x,ticks:{...BS.x.ticks,autoSkip:false}}}}
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:TTP},
+      scales:{...BS,x:{...BS.x,ticks:{...BS.x.ticks,autoSkip:false,maxRotation:0}}}}
   });
 }
 
-// ─── ACCOUNT TABLE ───────────────────────────────────────────────────────────
+// ── TABLE ───────────────────────────────────────────────────────────────────
 function renderTable(m){
-  document.getElementById('tblCount').textContent=m.length;
-  const sp=(t,cls)=>t?`<span class="pill ${cls}">${t}</span>`:'–';
-  document.getElementById('acctTable').innerHTML=m.map(r=>`<tr>
+  document.getElementById('tblCnt').textContent=m.length;
+  document.getElementById('acctTbl').innerHTML=m.map(r=>`<tr>
     <td><strong>${r.name}</strong></td>
-    <td>${r.stage==='Live'?sp('Live','p-live'):r.stage==='OB'?sp('OB','p-ob'):r.stage||'–'}</td>
-    <td>${r.subType==='INDEPENDENT'?sp('Indep.','p-ind'):r.subType==='FRANCHISE'?sp('Franchise','p-fra'):r.subType==='RESELLER'?sp('Reseller','p-res'):r.subType||'–'}</td>
-    <td>${r.segment==='Ent'?sp('Ent','p-ent'):r.segment==='Mid'?sp('Mid','p-mid'):r.segment==='SMB'?sp('SMB','p-smb'):r.segment||'–'}</td>
+    <td>${r.stage==='Live'?'<span class="pill p-live">Live</span>':r.stage==='OB'?'<span class="pill p-ob">OB</span>':r.stage||'–'}</td>
+    <td>${r.subType==='INDEPENDENT'?'<span class="pill p-ind">Indep.</span>':r.subType==='FRANCHISE'?'<span class="pill p-fra">Franchise</span>':r.subType==='RESELLER'?'<span class="pill p-res">Reseller</span>':r.subType||'–'}</td>
+    <td>${r.segment==='Ent'?'<span class="pill p-ent">Ent</span>':r.segment==='Mid'?'<span class="pill p-mid">Mid</span>':r.segment==='SMB'?'<span class="pill p-smb">SMB</span>':r.segment||'–'}</td>
     <td>${r.csm||'–'}</td>
     <td style="color:var(--text2);font-size:11px">${r.dms||'–'}</td>
     <td style="font-size:11px">${r.sla||'–'}</td>
     <td style="font-size:11px">${r.mrr||'–'}</td>
     <td style="text-align:right">${r.vinCount||0}</td>
-    <td style="color:var(--text2);font-size:11px">${r.lastActivity||'–'}</td>
+    <td style="color:var(--text2);font-size:11px">${r.lastAct||'–'}</td>
   </tr>`).join('');
 }
 
-// ─── RENDER ALL ──────────────────────────────────────────────────────────────
+// ── RENDER ALL ──────────────────────────────────────────────────────────────
 function renderAll(m,v){
   renderKPI(m,v);
   renderTrend(v);
-  renderProgress(m,v);
-  renderPersonBars(v);
-  renderAcctBars(v);
-  renderDMSBars(v);
-  renderTypeBars(v);
-  renderCSMBars(m);
+  renderProg(m,v);
+  renderPersonH(v);
+  renderAcctH(v);
+  renderDMSH(v);
+  renderTypeH(v);
+  renderCSMH(m);
   renderBreak(m);
   renderTable(m);
-  const ti=v.reduce((s,r)=>s+r.imageCount,0);
-  document.getElementById('syncText').textContent=
-    `Synced ${new Date().toLocaleTimeString()} · ${m.length} enterprises · ${v.length} VINs · ${ti.toLocaleString()} images`;
+  const ti=v.reduce((s,r)=>s+r.images,0);
+  document.getElementById('syncTxt').textContent=
+    `Synced ${new Date().toLocaleTimeString()} · ${m.length} rooftops · ${v.length} VINs · ${ti.toLocaleString()} images`;
 }
 
-// ─── POPULATE DROPDOWNS ──────────────────────────────────────────────────────
+// ── POPULATE DROPDOWNS ──────────────────────────────────────────────────────
 function populateDDs(){
   const dms=[...new Set([...vAll.map(r=>r.dms),...mAll.map(r=>r.dms)].filter(Boolean))].sort();
   const ds=document.getElementById('fDMS');
@@ -767,7 +673,6 @@ function populateDDs(){
   const persons=[...new Set(vAll.map(r=>r.person).filter(Boolean))].sort();
   const ps=document.getElementById('fPerson');
   persons.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;ps.appendChild(o);});
-  // Set date bounds
   if(vAll.length){
     const sorted=[...vAll].sort((a,b)=>a.date-b.date);
     ['fFrom','fTo'].forEach(id=>{
@@ -777,27 +682,23 @@ function populateDDs(){
   }
 }
 
-// ─── DATA LOAD ────────────────────────────────────────────────────────────────
+// ── DATA LOAD ───────────────────────────────────────────────────────────────
 async function loadData(){
-  document.getElementById('syncText').textContent='Loading…';
-  document.getElementById('errBar').style.display='none';
-  // Clear old dropdown options (keep first "All" option)
-  ['fDMS','fCSM','fPerson'].forEach(id=>{
-    const s=document.getElementById(id);
-    while(s.options.length>1)s.remove(1);
-  });
+  document.getElementById('syncTxt').textContent='Loading…';
+  document.getElementById('errbar').style.display='none';
+  ['fDMS','fCSM','fPerson'].forEach(id=>{const s=document.getElementById(id);while(s.options.length>1)s.remove(1);});
   try{
     const[mr,vr]=await Promise.all([fetch(M_URL),fetch(V_URL)]);
-    if(!mr.ok||!vr.ok) throw new Error('Sheet fetch failed — make sure the Google Sheet is set to "Anyone with the link can view".');
+    if(!mr.ok||!vr.ok)throw new Error('Sheet fetch failed — ensure the Google Sheet is set to "Anyone with the link can view".');
     const[mt,vt]=await Promise.all([mr.text(),vr.text()]);
     mAll=parseMaster(Papa.parse(mt,{skipEmptyLines:true}).data);
     vAll=parseVIN(Papa.parse(vt,{skipEmptyLines:true}).data);
     populateDDs();
     renderAll(mAll,vAll);
   }catch(e){
-    const eb=document.getElementById('errBar');
+    const eb=document.getElementById('errbar');
     eb.style.display='block';eb.textContent='⚠ '+e.message;
-    document.getElementById('syncText').textContent='Data load failed';
+    document.getElementById('syncTxt').textContent='Load failed';
     console.error(e);
   }
 }
