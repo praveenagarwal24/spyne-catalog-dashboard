@@ -142,21 +142,6 @@ tbody tr:hover td{background:var(--bg3)}
 <div id="errbar" class="errbar"></div>
 
 <div class="fbar">
-  <div class="fg">
-    <span class="fg-lbl">Date range</span>
-    <div class="dw">
-      <input type="date" id="fFrom" onchange="applyF()">
-      <span class="dt">→</span>
-      <input type="date" id="fTo" onchange="applyF()">
-    </div>
-    <div class="qrow">
-      <button class="qb" onclick="setQ('today',this)">Today</button>
-      <button class="qb" onclick="setQ('7d',this)">Last 7d</button>
-      <button class="qb" onclick="setQ('30d',this)">Last 30d</button>
-      <button class="qb" onclick="setQ('mtd',this)">This month</button>
-      <button class="qb on" onclick="setQ('all',this)">All time</button>
-    </div>
-  </div>
   <div class="fg"><span class="fg-lbl">DMS</span><select id="fDMS" onchange="applyF()"><option value="">All DMS</option></select></div>
   <div class="fg"><span class="fg-lbl">Stage</span>
     <select id="fStage" onchange="applyF()">
@@ -193,6 +178,23 @@ tbody tr:hover td{background:var(--bg3)}
         <button class="tgl" onclick="setTrend('30d',this)">30 Days</button>
         <button class="tgl on" onclick="setTrend('all',this)">All</button>
       </div>
+    </div>
+    <!-- DATE FILTER — applies to VIN activity only (trend + hbars below) -->
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px;padding:10px 14px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
+      <span style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">VIN Date range</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="date" id="fFrom" onchange="applyF()" style="font-size:12px;padding:5px 9px;height:30px;background:var(--bg2);color:var(--text);border:1px solid var(--border2);border-radius:7px;outline:none;color-scheme:dark;min-width:124px">
+        <span style="font-size:11px;color:var(--text3)">→</span>
+        <input type="date" id="fTo" onchange="applyF()" style="font-size:12px;padding:5px 9px;height:30px;background:var(--bg2);color:var(--text);border:1px solid var(--border2);border-radius:7px;outline:none;color-scheme:dark;min-width:124px">
+      </div>
+      <div style="display:flex;gap:4px">
+        <button class="qb" onclick="setQ('today',this)">Today</button>
+        <button class="qb" onclick="setQ('7d',this)">Last 7d</button>
+        <button class="qb" onclick="setQ('30d',this)">Last 30d</button>
+        <button class="qb" onclick="setQ('mtd',this)">This month</button>
+        <button class="qb on" onclick="setQ('all',this)">All time</button>
+      </div>
+      <span id="vinDateNote" style="font-size:11px;color:var(--text2);margin-left:4px"></span>
     </div>
     <div class="leg">
       <span class="li"><span class="ld" style="background:var(--blue)"></span>VINs <span class="lv" id="lgV">–</span></span>
@@ -321,7 +323,7 @@ function normT(v){
 // [22] Under Review header BUT actually contains Segment (SMB/Ent/Mid) for some rows
 // [36] customer_segment  ← primary segment column (Ent/SMB/Mid) — 59 filled
 function parseMaster(rows){
-  return rows.slice(1).filter(r=>r[0]&&r[0].trim()).map(r=>{
+  return rows.slice(1).filter(r=>(r[0]||'').trim()&&(r[1]||'').trim()).map(r=>{
     // Segment: prefer col 36, fallback to col 22
     const seg36=(r[36]||'').replace(/\r/g,'').trim();
     const seg22=(r[22]||'').trim();
@@ -447,26 +449,25 @@ const TTP={backgroundColor:'#1c1f2e',borderColor:'rgba(255,255,255,0.12)',border
 
 // ── KPI ROW 1: Master-based ─────────────────────────────────────────────────
 function renderKPI(m,v){
-  // Enterprise counts
-  const totalRows = m.length;                                   // 180 rooftops/teams
-  const uniqueEnts = new Set(m.map(r=>r.entId).filter(Boolean)).size; // unique enterprise IDs
-  const live  = m.filter(r=>r.stage==='Live').length;
-  const ob    = m.filter(r=>r.stage==='OB').length;
-
-  // VIN activity counts from VIN sheet
-  const totalVINs  = v.length;
-  const totalImgs  = v.reduce((s,r)=>s+r.images,0);
-  const uAccts     = new Set(v.map(r=>r.account).filter(Boolean)).size;
-  const totVinSite = m.reduce((s,r)=>s+r.vinCount,0);
-
-  // Segment counts from Master (using corrected segment field)
+  // ── ROW 1: Master-based metrics — NOT affected by date filter ──
+  // m is already blank-row-filtered: 178 valid rooftops, 145 unique enterprises
+  const totalRooftops = m.length;
+  const uniqueEnts    = new Set(m.map(r=>r.entId).filter(Boolean)).size;
+  const live          = m.filter(r=>r.stage==='Live').length;   // 150
+  const ob            = m.filter(r=>r.stage==='OB').length;     // 23
+  const totVinSite    = m.reduce((s,r)=>s+r.vinCount,0);
   const ent = m.filter(r=>r.segment==='Ent').length;
   const mid = m.filter(r=>r.segment==='Mid').length;
   const smb = m.filter(r=>r.segment==='SMB').length;
 
+  // ── VIN metrics — affected by date filter (v is already date-filtered) ──
+  const totalVINs = v.length;
+  const totalImgs = v.reduce((s,r)=>s+r.images,0);
+  const uAccts    = new Set(v.map(r=>r.account).filter(Boolean)).size;
+
   document.getElementById('krow1').innerHTML=`
-    <div class="kc"><div class="kc-lbl">Total rooftops</div><div class="kc-val cb">${totalRows}</div><div class="kc-sub">${uniqueEnts} unique enterprises</div></div>
-    <div class="kc"><div class="kc-lbl">Live accounts</div><div class="kc-val cg">${live}</div><div class="kc-sub">${totalRows?Math.round(live/totalRows*100):0}% of portfolio</div></div>
+    <div class="kc"><div class="kc-lbl">Total rooftops</div><div class="kc-val cb">${totalRooftops}</div><div class="kc-sub">${uniqueEnts} unique enterprises</div></div>
+    <div class="kc"><div class="kc-lbl">Live accounts</div><div class="kc-val cg">${live}</div><div class="kc-sub">${totalRooftops?Math.round(live/totalRooftops*100):0}% of portfolio</div></div>
     <div class="kc"><div class="kc-lbl">OB accounts</div><div class="kc-val ca">${ob}</div><div class="kc-sub">onboarding</div></div>
     <div class="kc"><div class="kc-lbl">VIN activities</div><div class="kc-val cg">${totalVINs.toLocaleString()}</div><div class="kc-sub">${uAccts} accounts active</div></div>
     <div class="kc"><div class="kc-lbl">Images processed</div><div class="kc-val ct">${totalImgs.toLocaleString()}</div><div class="kc-sub">avg ${totalVINs?Math.round(totalImgs/totalVINs):0} per VIN</div></div>
@@ -474,7 +475,7 @@ function renderKPI(m,v){
     <div class="kc"><div class="kc-lbl">Segment split</div><div class="kc-val cp">${ent}</div><div class="kc-sub">Ent · ${mid} Mid · ${smb} SMB</div></div>
   `;
 
-  // KPI row 2: processing types from VIN sheet
+  // ── ROW 2: Processing types — date-filtered ──
   const byType={};v.forEach(r=>{if(r.type)byType[r.type]=(byType[r.type]||0)+1;});
   const dmsD  = byType['DMS Download']||0;
   const conU  = byType['Console Upload']||0;
@@ -647,19 +648,24 @@ function renderTable(m){
 
 // ── RENDER ALL ──────────────────────────────────────────────────────────────
 function renderAll(m,v){
-  renderKPI(m,v);
+  // m = master filtered by non-date filters (stage/seg/type/csm/dms)
+  // v = VIN filtered by date + dms/type/person
+  // KPI row1 always uses full mAll for rooftop/enterprise/live/OB counts
+  renderKPI(mAll,v);        // rooftop/enterprise always from full master
   renderTrend(v);
-  renderProg(m,v);
+  renderProg(mAll,v);       // progress cards: stage from full master, data rate from date-filtered VIN
   renderPersonH(v);
   renderAcctH(v);
   renderDMSH(v);
   renderTypeH(v);
-  renderCSMH(m);
-  renderBreak(m);
-  renderTable(m);
+  renderCSMH(m);            // CSM bars respect non-date filters
+  renderBreak(m);           // breakdown chart respects non-date filters
+  renderTable(m);           // table respects non-date filters
   const ti=v.reduce((s,r)=>s+r.images,0);
+  const f=getF();
+  const dateNote = (f.from||f.to) ? ` · date filter active` : '';
   document.getElementById('syncTxt').textContent=
-    `Synced ${new Date().toLocaleTimeString()} · ${m.length} rooftops · ${v.length} VINs · ${ti.toLocaleString()} images`;
+    `Synced ${new Date().toLocaleTimeString()} · ${mAll.length} rooftops · ${v.length} VINs${dateNote} · ${ti.toLocaleString()} images`;
 }
 
 // ── POPULATE DROPDOWNS ──────────────────────────────────────────────────────
