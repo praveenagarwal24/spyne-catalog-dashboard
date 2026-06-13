@@ -822,32 +822,32 @@ function renderKPIs(k, months, filteredRows){
   const prevMk=sortedMonths[sortedMonths.length-2]||null;
   const cur=latestMk?months[latestMk]:{vins:0,images:0,ents:0,rooftops:0};
   const prev=prevMk?months[prevMk]:null;
+  const prevLabel=prev?('vs '+fmtMk(prevMk)):'vs prev month';
 
   function kpiHtml(label,value,cls,delta,sub){
-    const dHtml=delta.pct!=null
-      ?`<div class="kpi-delta ${delta.dir}">${delta.dir==='up'?'↑':'↓'} ${delta.pct}%</div>`
-      :`<div class="kpi-delta flat">—</div>`;
-    return`<div class="kpi"><div class="kpi-label">${esc(label)}</div>
-      <div class="kpi-value ${cls}">${esc(value)}</div>
-      ${dHtml}<div class="kpi-sub">${esc(sub)}</div></div>`;
+    let dHtml;
+    if(delta.pct!=null){
+      const arrow=delta.dir==='up'?'up':'down';
+      dHtml='<div class="kpi-delta '+arrow+'">'+(arrow==='up'?'↑':'↓')+' '+delta.pct+'%</div>';
+    } else {
+      dHtml='<div class="kpi-delta flat">no prev data</div>';
+    }
+    return '<div class="kpi"><div class="kpi-label">'+esc(label)+'</div>'
+      +'<div class="kpi-value '+cls+'">'+esc(value)+'</div>'
+      +dHtml+'<div class="kpi-sub">'+esc(sub)+'</div></div>';
   }
 
   $('kpiGrid').innerHTML=[
-    kpiHtml('Total VINs', num(k.totalVins), '',                mkDelta(k.totalVins,null), 'all time in view'),
-    kpiHtml('Total Images', numK(k.totalImages), 'cyan',       mkDelta(k.totalImages,null), 'all time in view'),
-    kpiHtml('Enterprises', num(k.totalEnts), 'blue',           mkDelta(k.totalEnts,null), 'active in view'),
-    kpiHtml('Rooftops', num(k.totalRooftops), 'purple',        mkDelta(k.totalRooftops,null), 'active in view'),
-    latestMk?kpiHtml(`${fmtMk(latestMk)} VINs`, num(cur.vins), 'green', mkDelta(cur.vins, prev?.vins), `vs ${prev?fmtMk(prevMk):'prev month'}`)
-             :kpiHtml('Latest Month VINs','—','green',{pct:null,dir:'flat'},'no data'),
-    latestMk?kpiHtml(`${fmtMk(latestMk)} Images`, numK(cur.images), 'amber', mkDelta(cur.images, prev?.images), `vs ${prev?fmtMk(prevMk):'prev month'}`)
-             :kpiHtml('Latest Month Images','—','amber',{pct:null,dir:'flat'},'no data'),
-    latestMk?kpiHtml('Enterprises (MOM)', num(cur.ents), 'blue', mkDelta(cur.ents, prev?.ents), `${prev?`prev: ${prev.ents}`:''}`)
-             :kpiHtml('Enterprises (MOM)','—','blue',{pct:null,dir:'flat'},''),
-    latestMk?kpiHtml('Rooftops (MOM)', num(cur.rooftops), 'purple', mkDelta(cur.rooftops, prev?.rooftops), `${prev?`prev: ${prev.rooftops}`:''}`)
-             :kpiHtml('Rooftops (MOM)','—','purple',{pct:null,dir:'flat'},''),
+    kpiHtml('VINs (latest month)',    num(cur.vins),        'green',  mkDelta(cur.vins,     prev&&prev.vins),     prevLabel),
+    kpiHtml('Images (latest month)',  numK(cur.images),     'cyan',   mkDelta(cur.images,   prev&&prev.images),   prevLabel),
+    kpiHtml('Enterprises (MOM)',      num(cur.ents),        'blue',   mkDelta(cur.ents,     prev&&prev.ents),     prev?('prev: '+prev.ents):prevLabel),
+    kpiHtml('Rooftops (MOM)',         num(cur.rooftops),    'purple', mkDelta(cur.rooftops, prev&&prev.rooftops), prev?('prev: '+prev.rooftops):prevLabel),
+    kpiHtml('Total VINs (in view)',   num(k.totalVins),     '',       mkDelta(cur.vins,     prev&&prev.vins),     prevLabel),
+    kpiHtml('Total Images (in view)', numK(k.totalImages),  'amber',  mkDelta(cur.images,   prev&&prev.images),   prevLabel),
+    kpiHtml('Total Enterprises',      num(k.totalEnts),     'blue',   mkDelta(cur.ents,     prev&&prev.ents),     prevLabel),
+    kpiHtml('Total Rooftops',         num(k.totalRooftops), 'purple', mkDelta(cur.rooftops, prev&&prev.rooftops), prevLabel),
   ].join('');
 }
-
 function fmtMk(mk){
   if(!mk)return'—';
   const [y,m]=mk.split('-');
