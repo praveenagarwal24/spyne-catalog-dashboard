@@ -323,15 +323,15 @@ function aggByMonth(rows){
   const m={};
   rows.forEach(r=>{
     const k=mkey(r.date);
-    if(!m[k])m[k]={vins:new Set(),images:0,ents:new Set(),teams:new Set()};
+    if(!m[k])m[k]={vins:new Set(),images:0,ents:new Set(),rooftops:new Set()};
     if(r.vin)m[k].vins.add(r.vin);
     m[k].images+=r.images;
     if(r.entId) m[k].ents.add(r.entId);
-    if(r.teamId)m[k].teams.add(r.teamId);
+    if(r.account)m[k].rooftops.add(r.account);
   });
   const out={};
   Object.entries(m).sort().forEach(([k,v])=>{
-    out[k]={vins:v.vins.size,images:v.images,ents:v.ents.size,teams:v.teams.size};
+    out[k]={vins:v.vins.size,images:v.images,ents:v.ents.size,rooftops:v.rooftops.size};
   });
   return out;
 }
@@ -422,13 +422,13 @@ function renderKPI(v){
   const uVINs  = uniqueVINs(v);
   const totImg = v.reduce((s,r)=>s+r.images,0);
   const uEnts  = new Set(v.map(r=>r.entId).filter(Boolean)).size;
-  const uTeams = new Set(v.map(r=>r.teamId).filter(Boolean)).size;
+  const uRooftops = new Set(v.map(r=>r.account).filter(Boolean)).size;
 
   document.getElementById('krow1').innerHTML=`
     <div class="kc"><div class="kclbl">Total rooftops</div><div class="kcval cb">${totalRooftops}</div><div class="kcsub">${uniqueEnts} unique enterprises</div></div>
     <div class="kc"><div class="kclbl">Live accounts</div><div class="kcval cg">${live}</div><div class="kcsub">${totalRooftops?Math.round(live/totalRooftops*100):0}% of portfolio</div></div>
     <div class="kc"><div class="kclbl">OB accounts</div><div class="kcval ca">${ob}</div><div class="kcsub">onboarding</div></div>
-    <div class="kc"><div class="kclbl">Unique VINs</div><div class="kcval cg">${uVINs.toLocaleString()}</div><div class="kcsub">${uEnts} enterprises · ${uTeams} rooftops</div></div>
+    <div class="kc"><div class="kclbl">Unique VINs</div><div class="kcval cg">${uVINs.toLocaleString()}</div><div class="kcsub">${uEnts} enterprises · ${uRooftops} rooftops</div></div>
     <div class="kc"><div class="kclbl">Images processed</div><div class="kcval ct">${totImg.toLocaleString()}</div><div class="kcsub">avg ${uVINs?Math.round(totImg/uVINs):0} per VIN</div></div>
     <div class="kc"><div class="kclbl">Est. VINs (website)</div><div class="kcval cp">${totVinSite.toLocaleString()}</div><div class="kcsub">across all accounts</div></div>
     <div class="kc"><div class="kclbl">Segment split</div><div class="kcval cp">${ent}</div><div class="kcsub">Ent · ${mid} Mid · ${smb} SMB</div></div>
@@ -462,11 +462,11 @@ function renderTrend(v){
     const vins =keys.map(k=>bm[k].vins);
     const imgs =keys.map(k=>bm[k].images);
     const ents =keys.map(k=>bm[k].ents);
-    const teams=keys.map(k=>bm[k].teams);
+    const teams=keys.map(k=>bm[k].rooftops);
     const tv=vins.reduce((a,b)=>a+b,0);
     const ti=imgs.reduce((a,b)=>a+b,0);
     const te=new Set(v.map(r=>r.entId).filter(Boolean)).size;
-    const tr=new Set(v.map(r=>r.teamId).filter(Boolean)).size;
+    const tr=new Set(v.map(r=>r.account).filter(Boolean)).size;
     document.getElementById('lgV').textContent=tv.toLocaleString();
     document.getElementById('lgI').textContent=ti.toLocaleString();
     document.getElementById('lgE').textContent=te;
@@ -503,7 +503,7 @@ function renderTrend(v){
     document.getElementById('lgV').textContent=tv.toLocaleString();
     document.getElementById('lgI').textContent=ti.toLocaleString();
     document.getElementById('lgE').textContent=new Set(v.map(r=>r.entId).filter(Boolean)).size;
-    document.getElementById('lgR').textContent=new Set(v.map(r=>r.teamId).filter(Boolean)).size;
+    document.getElementById('lgR').textContent=new Set(v.map(r=>r.account).filter(Boolean)).size;
     document.getElementById('trendSub').textContent=
       days.length?`Daily · ${fmtD(fromISO(days[0]))} → ${fmtD(fromISO(days[days.length-1]))} · ${tv.toLocaleString()} unique VINs`:'No data';
     kc('trendC');
