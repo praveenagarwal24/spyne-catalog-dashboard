@@ -398,9 +398,9 @@ tr:hover td{background:var(--bg);}
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           <div class="trend-tabs" id="metricTabs">
-            <button class="trend-tab sel" data-m="vins">VINs</button>
+            <button class="trend-tab" data-m="vins">VINs</button>
             <button class="trend-tab" data-m="images">Images</button>
-            <button class="trend-tab" data-m="both">Both</button>
+            <button class="trend-tab sel" data-m="both">Both</button>
           </div>
         </div>
       </div>
@@ -932,7 +932,7 @@ function renderTrend(months){
   $('trendLegend').innerHTML=Object.entries(totals).map(([k,v])=>
     `<div class="trend-legend-item"><span class="ldot" style="background:${cols[k]}"></span><span>${k}: </span><span class="lval">${numK(v)}</span></div>`
   ).join('');
-  $('trendSub').textContent=`${sortedMk.length} months · independent of date filter`;
+  $('trendSub').textContent=sortedMk.length+' months · VINs · Images · by month';
 }
 
 // ----------------------------------------
@@ -1307,6 +1307,9 @@ function paint(){
   F.from=savedFrom; F.to=savedTo;
   const kAll=aggregate(noDateFiltered);
 
+  // Store filtered months so metric tab clicks can re-render without re-aggregating
+  window._lastFilteredMonths=k.months;
+
   renderKPIs(k, k.months, kAll.months);
   renderTrend(k.months);
   renderEntMom(k.months);
@@ -1469,13 +1472,13 @@ $('metricTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
   trendMetric=b.dataset.m;
   $('metricTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
-  killChart('cTrend');renderTrend(aggregate(RAW_VIN.filter(passesFilters)).months);
+  killChart('cTrend');renderTrend(window._lastFilteredMonths||{});
 });
 $('typeTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
   typeChartMode=b.dataset.t;
   $('typeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
-  killChart('cTypeMom');renderTypeMom(aggregate(RAW_VIN.filter(passesFilters)).months);
+  killChart('cTypeMom');renderTypeMom(window._lastFilteredMonths||{});
 });
 $('userMetricTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
