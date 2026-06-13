@@ -294,13 +294,17 @@ tr:hover td{background:var(--bg);}
       <div class="date-panel" id="datePanel">
         <div class="dp-presets">
           <div class="dp-sec">Quick select</div>
-          <button class="dp-preset" data-p="all">All time</button>
+          <button class="dp-preset" data-p="today">Today</button>
+          <button class="dp-preset" data-p="yesterday">Yesterday</button>
+          <button class="dp-preset" data-p="last_7">Last 7 days</button>
+          <button class="dp-preset sel" data-p="last_30">Last 30 days</button>
+          <div class="dp-sec" style="margin-top:6px">Months</div>
           <button class="dp-preset" data-p="this_month">This month</button>
           <button class="dp-preset" data-p="last_month">Last month</button>
-          <button class="dp-preset sel" data-p="last_30">Last 30 days</button>
           <button class="dp-preset" data-p="last_3_months">Last 3 months</button>
           <button class="dp-preset" data-p="last_6_months">Last 6 months</button>
           <button class="dp-preset" data-p="this_year">This year</button>
+          <button class="dp-preset" data-p="all">All time</button>
           <div class="dp-sec" style="margin-top:6px">Custom</div>
           <button class="dp-preset" data-p="custom">Custom range</button>
         </div>
@@ -573,16 +577,19 @@ function parseDate(s){
   return new Date(yr, months[m[2]], parseInt(m[1]));
 }
 function midnight(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
-const PLABELS={all:'All time',this_month:'This month',last_month:'Last month',last_30:'Last 30 days',last_3_months:'Last 3 months',last_6_months:'Last 6 months',this_year:'This year',custom:'Custom range'};
+const PLABELS={all:'All time',today:'Today',yesterday:'Yesterday',last_7:'Last 7 days',this_month:'This month',last_month:'Last month',last_30:'Last 30 days',last_3_months:'Last 3 months',last_6_months:'Last 6 months',this_year:'This year',custom:'Custom range'};
 
 function presetRange(p){
   const now=new Date(), tod=midnight(now);
   const ago=n=>{const d=new Date(tod);d.setDate(tod.getDate()-n);return d;};
   if(p==='all')              return{from:null,to:null};
+  if(p==='today')            return{from:new Date(tod),to:new Date(tod)};
+  if(p==='yesterday')        return{from:ago(1),to:ago(1)};
+  if(p==='last_7')           return{from:ago(6),to:new Date(tod)};
+  if(p==='last_30')          return{from:ago(29),to:new Date(tod)};
   if(p==='this_month')       return{from:new Date(now.getFullYear(),now.getMonth(),1),to:new Date(tod)};
   if(p==='last_month')       return{from:new Date(now.getFullYear(),now.getMonth()-1,1),to:new Date(now.getFullYear(),now.getMonth(),0)};
   if(p==='last_3_months')    return{from:new Date(now.getFullYear(),now.getMonth()-3,1),to:new Date(tod)};
-  if(p==='last_30')          return{from:ago(29),to:new Date(tod)};
   if(p==='last_6_months')    return{from:new Date(now.getFullYear(),now.getMonth()-6,1),to:new Date(tod)};
   if(p==='this_year')        return{from:new Date(now.getFullYear(),0,1),to:new Date(tod)};
   return{from:null,to:null};
