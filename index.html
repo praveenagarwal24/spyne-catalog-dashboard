@@ -9,7 +9,7 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#111318;--bg2:#1c1f2e;--bg3:#252837;--bg4:#2e3245;
+  --bg:#111318;--bg2:#1c1f2e;--bg3:#252837;
   --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
   --text:#dde1ef;--text2:#8b93ad;--text3:#515870;
   --green:#3ecf8e;--blue:#6c9fff;--amber:#f5a623;
@@ -28,7 +28,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .btn-s{font-size:12px;padding:6px 14px;border-radius:7px;cursor:pointer;background:var(--blue);color:#fff;border:none;font-weight:500}
 .btn-s:hover{opacity:.85}
 
-/* FILTER BAR — no date (date is inside VIN section) */
 .fbar{padding:11px 24px 9px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
 .fg{display:flex;flex-direction:column;gap:4px}
 .fglbl{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
@@ -40,14 +39,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .main{padding:20px 24px 56px}
 .sec{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
 
-/* KPI */
 .kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px;margin-bottom:8px}
 .kc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px 13px}
 .kclbl{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
 .kcval{font-size:32px;font-weight:700;line-height:1;letter-spacing:-.5px}
 .kcsub{font-size:11px;color:var(--text2);margin-top:5px}
 
-/* CARDS */
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 20px 14px;margin-bottom:12px}
 .chdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
 .ctitle{font-size:14px;font-weight:600}
@@ -57,22 +54,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .tgl.on{background:var(--blue);color:#fff;border-color:var(--blue)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 
-/* DATE FILTER PANEL inside VIN section */
-.date-panel{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px;padding:10px 14px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)}
-.date-panel label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
-.date-panel input[type=date]{font-size:12px;padding:5px 9px;height:30px;background:var(--bg2);color:var(--text);border:1px solid var(--border2);border-radius:7px;outline:none;color-scheme:dark;min-width:124px}
-.date-panel input[type=date]:focus{border-color:var(--blue)}
+.dpanel{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px;padding:10px 14px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)}
+.dpanel label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
+.dpanel input[type=date]{font-size:12px;padding:5px 9px;height:30px;background:var(--bg2);color:var(--text);border:1px solid var(--border2);border-radius:7px;outline:none;color-scheme:dark;min-width:124px}
+.dpanel input[type=date]:focus{border-color:var(--blue)}
 .dsep{font-size:11px;color:var(--text3)}
 .qb{font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;background:transparent;color:var(--text2);border:1px solid var(--border);transition:all .12s;white-space:nowrap}
 .qb:hover,.qb.on{background:var(--blue);color:#fff;border-color:var(--blue)}
 
-/* LEGEND */
 .leg{display:flex;flex-wrap:wrap;gap:14px;font-size:11px;color:var(--text2);margin-bottom:12px}
 .li{display:flex;align-items:center;gap:5px}
 .ld{width:10px;height:10px;border-radius:2px;flex-shrink:0}
 .lv{font-weight:600;color:var(--text);margin-left:2px}
 
-/* PROGRESS */
 .pgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
 .pc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
 .pnums{display:flex;justify-content:space-between;margin-bottom:3px}
@@ -84,16 +78,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .prange{display:flex;justify-content:space-between;font-size:10px;color:var(--text3)}
 .pfoot{font-size:10px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
 
-/* HBAR */
 .hlist{display:flex;flex-direction:column}
-.hr{display:grid;grid-template-columns:150px 1fr 56px;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)}
+.hr{display:grid;grid-template-columns:150px 1fr 60px;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)}
 .hr:last-child{border-bottom:none}
 .hl{font-size:11px;color:var(--text2);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ht{background:var(--bg3);border-radius:3px;height:8px;overflow:hidden}
 .hf{height:100%;border-radius:3px}
 .hc{font-size:12px;color:var(--text);font-weight:500;text-align:right;white-space:nowrap}
 
-/* TABLE */
 .tw{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:12px}
 th{font-size:10px;font-weight:600;color:var(--text3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border2);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
@@ -101,7 +93,6 @@ td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);whit
 tr:last-child td{border-bottom:none}
 tbody tr:hover td{background:var(--bg3)}
 
-/* PILLS */
 .pill{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px}
 .p-live{background:rgba(62,207,142,.14);color:var(--green)}
 .p-ob{background:rgba(245,166,35,.14);color:var(--amber)}
@@ -112,7 +103,6 @@ tbody tr:hover td{background:var(--bg3)}
 .p-fra{background:rgba(240,112,85,.14);color:var(--coral)}
 .p-res{background:rgba(248,113,113,.14);color:var(--red)}
 
-/* COLORS */
 .cg{color:var(--green)}.cb{color:var(--blue)}.ca{color:var(--amber)}
 .cc{color:var(--coral)}.cp{color:var(--purple)}.ct{color:var(--teal)}
 
@@ -140,18 +130,14 @@ tbody tr:hover td{background:var(--bg3)}
 
 <div id="errbar" class="errbar"></div>
 
-<!-- FILTER BAR: non-date filters only -->
 <div class="fbar">
   <div class="fg"><span class="fglbl">DMS</span><select id="fDMS" onchange="applyF()"><option value="">All DMS</option></select></div>
   <div class="fg"><span class="fglbl">Stage</span>
-    <select id="fStage" onchange="applyF()"><option value="">All stages</option><option>Live</option><option>OB</option></select>
-  </div>
+    <select id="fStage" onchange="applyF()"><option value="">All stages</option><option>Live</option><option>OB</option></select></div>
   <div class="fg"><span class="fglbl">Segment</span>
-    <select id="fSeg" onchange="applyF()"><option value="">All segments</option><option>Ent</option><option>Mid</option><option>SMB</option></select>
-  </div>
+    <select id="fSeg" onchange="applyF()"><option value="">All segments</option><option>Ent</option><option>Mid</option><option>SMB</option></select></div>
   <div class="fg"><span class="fglbl">Account type</span>
-    <select id="fType" onchange="applyF()"><option value="">All types</option><option>INDEPENDENT</option><option>FRANCHISE</option><option>RESELLER</option></select>
-  </div>
+    <select id="fType" onchange="applyF()"><option value="">All types</option><option>INDEPENDENT</option><option>FRANCHISE</option><option>RESELLER</option></select></div>
   <div class="fg"><span class="fglbl">CSM</span><select id="fCSM" onchange="applyF()"><option value="">All CSMs</option></select></div>
   <div class="fg"><span class="fglbl">Person (VIN)</span><select id="fPerson" onchange="applyF()"><option value="">All persons</option></select></div>
   <button class="rbtn" onclick="resetF()">Reset</button>
@@ -159,23 +145,20 @@ tbody tr:hover td{background:var(--bg3)}
 
 <div class="main">
 
-  <!-- KPI ROW 1: Master-based (never changes with date filter) -->
-  <div class="sec">Overview · based on current Master sheet</div>
+  <div class="sec">Overview · Master sheet (current snapshot)</div>
   <div class="kg" id="krow1"><div class="loading"><div class="spin"></div></div></div>
   <div class="kg" id="krow2" style="margin-bottom:20px"></div>
 
-  <!-- TREND CHART with date filter INSIDE -->
   <div class="card">
     <div class="chdr">
-      <div><div class="ctitle">VIN throughput trend</div><div class="csub" id="trendSub">Monthly · Aug 2025 → Jun 2026</div></div>
+      <div><div class="ctitle">VIN throughput trend</div><div class="csub" id="trendSub">Monthly · Aug'25 → Jun'26</div></div>
       <div class="tglrow" id="trendTgls">
         <button class="tgl" onclick="setTrend('daily',this)">Daily</button>
         <button class="tgl on" onclick="setTrend('monthly',this)">Monthly</button>
       </div>
     </div>
 
-    <!-- DATE FILTER — only applies to VIN activity sections below -->
-    <div class="date-panel">
+    <div class="dpanel">
       <label>VIN date range</label>
       <div style="display:flex;align-items:center;gap:6px">
         <input type="date" id="fFrom" onchange="applyF()">
@@ -193,7 +176,7 @@ tbody tr:hover td{background:var(--bg3)}
     </div>
 
     <div class="leg">
-      <span class="li"><span class="ld" style="background:var(--blue)"></span>VINs <span class="lv" id="lgV">–</span></span>
+      <span class="li"><span class="ld" style="background:var(--blue)"></span>Unique VINs <span class="lv" id="lgV">–</span></span>
       <span class="li"><span class="ld" style="background:var(--green)"></span>Images <span class="lv" id="lgI">–</span></span>
       <span class="li"><span class="ld" style="background:var(--purple)"></span>Enterprises <span class="lv" id="lgE">–</span></span>
       <span class="li"><span class="ld" style="background:var(--teal)"></span>Rooftops <span class="lv" id="lgR">–</span></span>
@@ -201,23 +184,20 @@ tbody tr:hover td{background:var(--bg3)}
     <div style="position:relative;height:260px"><canvas id="trendC" role="img" aria-label="VIN throughput trend"></canvas></div>
   </div>
 
-  <!-- PROGRESS CARDS -->
   <div class="pgrid" id="progCards"></div>
 
-  <!-- PERSON + TOP ACCOUNTS -->
   <div class="two">
     <div class="card" style="margin:0">
-      <div class="chdr"><div><div class="ctitle">VINs by person</div><div class="csub">Click to filter</div></div></div>
+      <div class="chdr"><div><div class="ctitle">Unique VINs by person</div><div class="csub">Click to filter</div></div></div>
       <div class="hlist" id="personH"></div>
     </div>
     <div class="card" style="margin:0">
-      <div class="chdr"><div><div class="ctitle">Top accounts by VIN volume</div><div class="csub">Top 10</div></div></div>
+      <div class="chdr"><div><div class="ctitle">Top accounts by unique VIN volume</div><div class="csub">Top 10</div></div></div>
       <div class="hlist" id="acctH"></div>
     </div>
   </div>
   <div style="height:12px"></div>
 
-  <!-- DMS + PROCESSING TYPE -->
   <div class="two">
     <div class="card" style="margin:0">
       <div class="chdr"><div><div class="ctitle">VINs by DMS platform</div><div class="csub">Click to filter</div></div></div>
@@ -230,7 +210,6 @@ tbody tr:hover td{background:var(--bg3)}
   </div>
   <div style="height:12px"></div>
 
-  <!-- CSM + BREAKDOWN -->
   <div class="two">
     <div class="card" style="margin:0">
       <div class="chdr"><div><div class="ctitle">Top CSMs by account count</div><div class="csub">Master sheet</div></div></div>
@@ -243,7 +222,6 @@ tbody tr:hover td{background:var(--bg3)}
   </div>
   <div style="height:20px"></div>
 
-  <!-- ACCOUNT TABLE -->
   <div class="sec">Account list · <span id="tblCnt">–</span> shown</div>
   <div class="card" style="padding:0;overflow:hidden">
     <div class="tw">
@@ -261,30 +239,15 @@ tbody tr:hover td{background:var(--bg3)}
 </div>
 
 <script>
-// ── CONFIG ─────────────────────────────────────────────────────────────────
-const SID = '1_IwAbspIesz7p3VQ75MWPu-LkUQTvdE5yvamt816db0';
+const SID  = '1_IwAbspIesz7p3VQ75MWPu-LkUQTvdE5yvamt816db0';
 const BASE = `https://docs.google.com/spreadsheets/d/${SID}/gviz/tq?tqx=out:csv&sheet=`;
 
-// Monthly master sheets (each is a snapshot for that month)
-const MONTH_SHEETS = [
-  {key:'2025-08',label:"Aug'25",sheet:"Aug'25"},
-  {key:'2025-09',label:"Sep'25",sheet:"Sep'25"},
-  {key:'2025-10',label:"Oct'25",sheet:"Oct'25"},
-  {key:'2025-11',label:"Nov'25",sheet:"Nov'25"},
-  {key:'2025-12',label:"Dec'25",sheet:"Dec'25"},
-  {key:'2026-01',label:"Jan'26",sheet:"Jan'26"},
-  {key:'2026-02',label:"Feb'26",sheet:"Feb'26"},
-  {key:'2026-03',label:"Mar'26",sheet:"Mar'26"},
-  {key:'2026-04',label:"Apr'26",sheet:"Apr'26"},
-  {key:'2026-05',label:"May'26",sheet:"May'26"},
-  {key:'2026-06',label:"Jun'26",sheet:"Jun'26"},
-];
-
-// ── STATE ──────────────────────────────────────────────────────────────────
-let mAll=[], vAll=[], monthlyM={}, charts={}, tMode='monthly';
+let mAll=[], vAll=[], charts={}, tMode='monthly';
 
 // ── DATE UTILS ─────────────────────────────────────────────────────────────
-const MON={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,june:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+const MON={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+
+// Parse "12-Aug-25" or "26-Mar-2026" → Date
 function parseVD(s){
   if(!s) return null;
   const p=s.trim().split('-');
@@ -292,25 +255,22 @@ function parseVD(s){
   const m=MON[p[1].toLowerCase()];
   if(m===undefined) return null;
   let yr=parseInt(p[2]);
-  // Fix 2-digit year: "25" → 2025, "26" → 2026
-  if(yr<100) yr+=2000;
-  const d=new Date(yr,m,parseInt(p[0]));
-  return isNaN(d)?null:d;
+  if(isNaN(yr)) return null;
+  if(yr<100) yr+=2000;           // "25" → 2025
+  const dy=parseInt(p[0]);
+  if(isNaN(dy)) return null;
+  return new Date(yr,m,dy);
 }
 function toISO(d){return d.toISOString().slice(0,10)}
 function fromISO(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
 function fmtD(d){return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}
 function fmtM(d){return d.toLocaleDateString('en-GB',{month:"short",year:"2-digit"}).replace(' ',"'")}
-function monthKey(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
+function mkey(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
 
 // ── CSV PARSER ─────────────────────────────────────────────────────────────
-function pr(r){
-  const c=[];let cur='',q=false;
-  for(const ch of r){if(ch==='"')q=!q;else if(ch===','&&!q){c.push(cur.trim());cur='';}else cur+=ch;}
-  c.push(cur.trim());return c;
-}
+function pr(r){const c=[];let cur='',q=false;for(const ch of r){if(ch==='"')q=!q;else if(ch===','&&!q){c.push(cur.trim());cur='';}else cur+=ch;}c.push(cur.trim());return c;}
 
-// ── NORMALIZE ─────────────────────────────────────────────────────────────
+// ── NORMALISE ─────────────────────────────────────────────────────────────
 function normT(v){
   const s=(v||'').toUpperCase().replace(/\s/g,'');
   if(s.includes('INDEPENDENT'))return'INDEPENDENT';
@@ -318,70 +278,72 @@ function normT(v){
   if(s.includes('RESELLER'))return'RESELLER';
   return s;
 }
-function cleanCSM(v){
-  const s=(v||'').trim();
-  return(!s||s.startsWith('$')||['Live','OB','Support'].includes(s))?'':s;
-}
+function cleanCSM(v){const s=(v||'').trim();return(!s||s.startsWith('$')||['Live','OB','Support'].includes(s))?'':s;}
 
 // ── PARSE MASTER ───────────────────────────────────────────────────────────
-// VERIFIED column positions:
-// [0] Enterprise Name  [1] Enterprise ID  [2] Team ID
-// [3] Account sub type [6] VIN count (website)
-// [11] SLA  [12] ARR  [13] MRR
-// [14] Account Stage (Live/OB)  [15] CSM  [16] Reviewer  [17] DMS
-// [19] Start Date  [20] Last Activity
-// [22] Segment (partial)  [36] customer_segment (primary)
-function parseMasterRows(rows){
-  return rows.slice(1)
-    .filter(r=>(r[0]||'').trim()&&(r[1]||'').trim()) // skip blank rows
-    .map(r=>{
-      const seg36=(r[36]||'').replace(/\r/g,'').trim();
-      const seg22=(r[22]||'').trim();
-      const segment=['Ent','Mid','SMB'].includes(seg36)?seg36:
-                    ['Ent','Mid','SMB'].includes(seg22)?seg22:'';
-      return{
-        name:(r[0]||'').trim(), entId:(r[1]||'').trim(), teamId:(r[2]||'').trim(),
-        subType:normT(r[3]), sla:(r[11]||'').trim(),
-        mrr:(r[13]||'').trim(), stage:(r[14]||'').trim(),
-        csm:cleanCSM(r[15]), dms:(r[17]||'').trim(),
-        vinCount:parseInt(r[6])||0, lastAct:(r[20]||'').trim(), segment
-      };
-    });
+// Cols: [0]Name [1]EntID [2]TeamID [3]SubType [6]VINcount(site)
+//       [11]SLA [13]MRR [14]Stage [15]CSM [17]DMS [20]LastAct
+//       [22]seg(partial) [36]customer_segment
+function parseMaster(rows){
+  return rows.slice(1).filter(r=>(r[0]||'').trim()&&(r[1]||'').trim()).map(r=>{
+    const s36=(r[36]||'').replace(/\r/g,'').trim();
+    const s22=(r[22]||'').trim();
+    const segment=['Ent','Mid','SMB'].includes(s36)?s36:['Ent','Mid','SMB'].includes(s22)?s22:'';
+    return{
+      name:(r[0]||'').trim(), entId:(r[1]||'').trim(), teamId:(r[2]||'').trim(),
+      subType:normT(r[3]), sla:(r[11]||'').trim(), mrr:(r[13]||'').trim(),
+      stage:(r[14]||'').trim(), csm:cleanCSM(r[15]), dms:(r[17]||'').trim(),
+      vinCount:parseInt(r[6])||0, lastAct:(r[20]||'').trim(), segment
+    };
+  });
 }
 
 // ── PARSE VIN ──────────────────────────────────────────────────────────────
-// [0] Date  [1] Enterprise ID  [2] Team ID  [3] Account Sub Type
-// [4] DMS  [5] Person  [6] Account Name  [7] VIN  [8] Image Count
-// [9] Type  [11] segment
+// Cols: [0]Date [1]EntID [2]TeamID [3]SubType [4]DMS [5]Person
+//       [6]AccountName [7]VIN/StockNo [8]Images [9]Type [11]segment
 function parseVIN(rows){
   return rows.slice(1).filter(r=>(r[0]||'').trim()).map(r=>({
-    rawDate:(r[0]||'').trim(), date:parseVD(r[0]),
-    entId:(r[1]||'').trim(), teamId:(r[2]||'').trim(),
-    subType:normT(r[3]), dms:(r[4]||'').trim(),
-    person:(r[5]||'').trim(), account:(r[6]||'').trim(),
-    images:parseInt(r[8])||0, type:(r[9]||'').trim(),
-    segment:(r[11]||'').trim(),
+    date:     parseVD((r[0]||'').trim()),
+    entId:    (r[1]||'').trim(),
+    teamId:   (r[2]||'').trim(),
+    subType:  normT(r[3]),
+    dms:      (r[4]||'').trim(),
+    person:   (r[5]||'').trim(),
+    account:  (r[6]||'').trim(),
+    vin:      (r[7]||'').trim(),   // VIN / Stock No. — key for unique count
+    images:   parseInt(r[8])||0,
+    type:     (r[9]||'').trim(),
+    segment:  (r[11]||'').trim(),
   })).filter(r=>r.date);
 }
 
-// ── VIN aggregation by month key ──────────────────────────────────────────
-function vinByMonth(v){
+// ── UNIQUE VIN AGGREGATION ─────────────────────────────────────────────────
+// Groups rows by monthKey; within each month counts UNIQUE vin values
+function aggByMonth(rows){
   const m={};
-  v.forEach(r=>{
-    const k=monthKey(r.date);
-    if(!m[k])m[k]={vins:0,images:0,ents:new Set(),teams:new Set()};
-    m[k].vins++; m[k].images+=r.images;
-    if(r.entId)m[k].ents.add(r.entId);
+  rows.forEach(r=>{
+    const k=mkey(r.date);
+    if(!m[k])m[k]={vins:new Set(),images:0,ents:new Set(),teams:new Set()};
+    if(r.vin)m[k].vins.add(r.vin);
+    m[k].images+=r.images;
+    if(r.entId) m[k].ents.add(r.entId);
     if(r.teamId)m[k].teams.add(r.teamId);
   });
-  return m;
+  const out={};
+  Object.entries(m).sort().forEach(([k,v])=>{
+    out[k]={vins:v.vins.size,images:v.images,ents:v.ents.size,teams:v.teams.size};
+  });
+  return out;
 }
 
-// ── FILTER HELPERS ─────────────────────────────────────────────────────────
+// Unique VIN count for a flat set of rows
+function uniqueVINs(rows){return new Set(rows.map(r=>r.vin).filter(Boolean)).size;}
+
+// ── FILTERS ────────────────────────────────────────────────────────────────
 function getF(){
   return{
-    from:  document.getElementById('fFrom').value  ?fromISO(document.getElementById('fFrom').value) :null,
-    to:    document.getElementById('fTo').value    ?fromISO(document.getElementById('fTo').value)   :null,
+    from:  document.getElementById('fFrom').value   ?fromISO(document.getElementById('fFrom').value)  :null,
+    to:    document.getElementById('fTo').value     ?fromISO(document.getElementById('fTo').value)    :null,
     dms:   document.getElementById('fDMS').value,
     stage: document.getElementById('fStage').value,
     seg:   document.getElementById('fSeg').value,
@@ -444,75 +406,82 @@ const BS={
 };
 function kc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 
-// ── KPI ROW 1 — always from full current mAll (Master snapshot) ────────────
+// ── KPI ROW 1 ──────────────────────────────────────────────────────────────
 function renderKPI(v){
-  // Master KPIs — never change with date filter, always use mAll
-  const totalRooftops = mAll.length;                                     // 178
+  // Master KPIs — always from full mAll, never date-filtered
+  const totalRooftops = mAll.length;                                        // 178
   const uniqueEnts    = new Set(mAll.map(r=>r.entId).filter(Boolean)).size; // 145
-  const live          = mAll.filter(r=>r.stage==='Live').length;         // 150
-  const ob            = mAll.filter(r=>r.stage==='OB').length;           // 23
+  const live          = mAll.filter(r=>r.stage==='Live').length;            // 150
+  const ob            = mAll.filter(r=>r.stage==='OB').length;              // 23
   const totVinSite    = mAll.reduce((s,r)=>s+r.vinCount,0);
   const ent=mAll.filter(r=>r.segment==='Ent').length;
   const mid=mAll.filter(r=>r.segment==='Mid').length;
   const smb=mAll.filter(r=>r.segment==='SMB').length;
 
-  // VIN KPIs — date-filtered
-  const totalVINs = v.length;
-  const totalImgs = v.reduce((s,r)=>s+r.images,0);
-  const uAccts    = new Set(v.map(r=>r.account).filter(Boolean)).size;
-  const uEnts     = new Set(v.map(r=>r.entId).filter(Boolean)).size;
+  // VIN KPIs — UNIQUE VINs from date-filtered rows
+  const uVINs  = uniqueVINs(v);
+  const totImg = v.reduce((s,r)=>s+r.images,0);
+  const uEnts  = new Set(v.map(r=>r.entId).filter(Boolean)).size;
+  const uTeams = new Set(v.map(r=>r.teamId).filter(Boolean)).size;
 
   document.getElementById('krow1').innerHTML=`
     <div class="kc"><div class="kclbl">Total rooftops</div><div class="kcval cb">${totalRooftops}</div><div class="kcsub">${uniqueEnts} unique enterprises</div></div>
     <div class="kc"><div class="kclbl">Live accounts</div><div class="kcval cg">${live}</div><div class="kcsub">${totalRooftops?Math.round(live/totalRooftops*100):0}% of portfolio</div></div>
     <div class="kc"><div class="kclbl">OB accounts</div><div class="kcval ca">${ob}</div><div class="kcsub">onboarding</div></div>
-    <div class="kc"><div class="kclbl">VIN activities</div><div class="kcval cg">${totalVINs.toLocaleString()}</div><div class="kcsub">${uEnts} enterprises · ${uAccts} rooftops</div></div>
-    <div class="kc"><div class="kclbl">Images processed</div><div class="kcval ct">${totalImgs.toLocaleString()}</div><div class="kcsub">avg ${totalVINs?Math.round(totalImgs/totalVINs):0} per VIN</div></div>
+    <div class="kc"><div class="kclbl">Unique VINs</div><div class="kcval cg">${uVINs.toLocaleString()}</div><div class="kcsub">${uEnts} enterprises · ${uTeams} rooftops</div></div>
+    <div class="kc"><div class="kclbl">Images processed</div><div class="kcval ct">${totImg.toLocaleString()}</div><div class="kcsub">avg ${uVINs?Math.round(totImg/uVINs):0} per VIN</div></div>
     <div class="kc"><div class="kclbl">Est. VINs (website)</div><div class="kcval cp">${totVinSite.toLocaleString()}</div><div class="kcsub">across all accounts</div></div>
     <div class="kc"><div class="kclbl">Segment split</div><div class="kcval cp">${ent}</div><div class="kcsub">Ent · ${mid} Mid · ${smb} SMB</div></div>
   `;
 
-  // KPI row 2 — processing types, date-filtered
-  const byType={};v.forEach(r=>{if(r.type)byType[r.type]=(byType[r.type]||0)+1;});
-  const dmsD=byType['DMS Download']||0, conU=byType['Console Upload']||0;
-  const conD=byType['Console Download']||0, liveV=byType['Live']||0;
-  const noD=byType['No Data Available']||0, n=v.length||1;
+  // Row 2: processing types — by UNIQUE VINs per type
+  // A VIN can appear multiple times; count unique VIN per type bucket
+  const byType={};
+  v.forEach(r=>{if(r.type&&r.vin)byType[r.type]=(byType[r.type]||new Set()).add(r.vin)});
+  // Actually pivot counts rows not unique vins for processing type — use row count
+  const btr={};
+  v.forEach(r=>{if(r.type)btr[r.type]=(btr[r.type]||0)+1;});
+  const dmsD=btr['DMS Download']||0, conU=btr['Console Upload']||0;
+  const conD=btr['Console Download']||0, liveV=btr['Live']||0;
+  const noD=btr['No Data Available']||0, n=v.length||1;
   document.getElementById('krow2').innerHTML=`
-    <div class="kc" style="padding:13px 18px 11px"><div class="kclbl">DMS Download</div><div class="kcval cb" style="font-size:26px">${dmsD.toLocaleString()}</div><div class="kcsub">${Math.round(dmsD/n*100)}% of VINs</div></div>
-    <div class="kc" style="padding:13px 18px 11px"><div class="kclbl">Console Upload</div><div class="kcval cg" style="font-size:26px">${conU.toLocaleString()}</div><div class="kcsub">${Math.round(conU/n*100)}% of VINs</div></div>
-    <div class="kc" style="padding:13px 18px 11px"><div class="kclbl">Console Download</div><div class="kcval ct" style="font-size:26px">${conD.toLocaleString()}</div><div class="kcsub">${Math.round(conD/n*100)}% of VINs</div></div>
-    <div class="kc" style="padding:13px 18px 11px"><div class="kclbl">Live</div><div class="kcval cg" style="font-size:26px">${liveV.toLocaleString()}</div><div class="kcsub">${Math.round(liveV/n*100)}% of VINs</div></div>
-    <div class="kc" style="padding:13px 18px 11px"><div class="kclbl">No data available</div><div class="kcval cc" style="font-size:26px">${noD.toLocaleString()}</div><div class="kcsub">${Math.round(noD/n*100)}% of VINs</div></div>
+    <div class="kc" style="padding:13px 18px 11px"><div class="kclbl">DMS Download</div><div class="kcval cb" style="font-size:26px">${dmsD.toLocaleString()}</div><div class="kcsub">${Math.round(dmsD/n*100)}% of rows</div></div>
+    <div class="kc" style="padding:13px 18px 11px"><div class="kclbl">Console Upload</div><div class="kcval cg" style="font-size:26px">${conU.toLocaleString()}</div><div class="kcsub">${Math.round(conU/n*100)}% of rows</div></div>
+    <div class="kc" style="padding:13px 18px 11px"><div class="kclbl">Console Download</div><div class="kcval ct" style="font-size:26px">${conD.toLocaleString()}</div><div class="kcsub">${Math.round(conD/n*100)}% of rows</div></div>
+    <div class="kc" style="padding:13px 18px 11px"><div class="kclbl">Live</div><div class="kcval cg" style="font-size:26px">${liveV.toLocaleString()}</div><div class="kcsub">${Math.round(liveV/n*100)}% of rows</div></div>
+    <div class="kc" style="padding:13px 18px 11px"><div class="kclbl">No data available</div><div class="kcval cc" style="font-size:26px">${noD.toLocaleString()}</div><div class="kcsub">${Math.round(noD/n*100)}% of rows</div></div>
   `;
 }
 
-// ── TREND CHART ─────────────────────────────────────────────────────────────
+// ── TREND CHART ────────────────────────────────────────────────────────────
 function renderTrend(v){
   if(tMode==='monthly'){
-    // Use per-month aggregation from VIN sheet (matches your pivot exactly)
-    const bm=vinByMonth(v);
+    const bm=aggByMonth(v);
     const keys=Object.keys(bm).sort();
-    const labels=keys.map(k=>{const[yr,mo]=k.split('-');const d=new Date(+yr,+mo-1,1);return fmtM(d);});
-    const vins=keys.map(k=>bm[k].vins);
-    const imgs=keys.map(k=>bm[k].images);
-    const ents=keys.map(k=>bm[k].ents.size);
-    const roofs=keys.map(k=>bm[k].teams.size);
-    const tv=vins.reduce((a,b)=>a+b,0), ti=imgs.reduce((a,b)=>a+b,0);
+    const labels=keys.map(k=>{const[yr,mo]=k.split('-');return fmtM(new Date(+yr,+mo-1,1));});
+    const vins =keys.map(k=>bm[k].vins);
+    const imgs =keys.map(k=>bm[k].images);
+    const ents =keys.map(k=>bm[k].ents);
+    const teams=keys.map(k=>bm[k].teams);
+    const tv=vins.reduce((a,b)=>a+b,0);
+    const ti=imgs.reduce((a,b)=>a+b,0);
+    const te=new Set(v.map(r=>r.entId).filter(Boolean)).size;
+    const tr=new Set(v.map(r=>r.teamId).filter(Boolean)).size;
     document.getElementById('lgV').textContent=tv.toLocaleString();
     document.getElementById('lgI').textContent=ti.toLocaleString();
-    document.getElementById('lgE').textContent=[...new Set(v.map(r=>r.entId).filter(Boolean))].length;
-    document.getElementById('lgR').textContent=[...new Set(v.map(r=>r.teamId).filter(Boolean))].length;
+    document.getElementById('lgE').textContent=te;
+    document.getElementById('lgR').textContent=tr;
     document.getElementById('trendSub').textContent=
-      keys.length?`Monthly · ${labels[0]} → ${labels[labels.length-1]} · ${tv.toLocaleString()} VINs`:'No data';
+      keys.length?`Monthly · ${labels[0]} → ${labels[labels.length-1]} · ${tv.toLocaleString()} unique VINs`:'No data';
     kc('trendC');
     if(!keys.length)return;
     charts['trendC']=new Chart(document.getElementById('trendC'),{
       type:'line',
       data:{labels,datasets:[
-        {label:'VINs',data:vins,borderColor:'#6c9fff',backgroundColor:'rgba(108,159,255,0.1)',fill:true,tension:.35,pointRadius:4,pointBackgroundColor:'#6c9fff',borderWidth:2},
+        {label:'Unique VINs',data:vins,borderColor:'#6c9fff',backgroundColor:'rgba(108,159,255,0.1)',fill:true,tension:.35,pointRadius:4,pointBackgroundColor:'#6c9fff',borderWidth:2},
         {label:'Images',data:imgs,borderColor:'#3ecf8e',backgroundColor:'rgba(62,207,142,0.06)',fill:true,tension:.35,pointRadius:4,pointBackgroundColor:'#3ecf8e',borderWidth:2,yAxisID:'y2'},
         {label:'Enterprises',data:ents,borderColor:'#a78bfa',backgroundColor:'transparent',tension:.35,pointRadius:3,borderWidth:1.5,yAxisID:'y3',borderDash:[4,3]},
-        {label:'Rooftops',data:roofs,borderColor:'#2dd4bf',backgroundColor:'transparent',tension:.35,pointRadius:3,borderWidth:1.5,yAxisID:'y3',borderDash:[4,3]}
+        {label:'Rooftops',data:teams,borderColor:'#2dd4bf',backgroundColor:'transparent',tension:.35,pointRadius:3,borderWidth:1.5,yAxisID:'y3',borderDash:[4,3]}
       ]},
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
         plugins:{legend:{display:false},tooltip:TTP},
@@ -524,49 +493,41 @@ function renderTrend(v){
         }}
     });
   } else {
-    // Daily view
+    // Daily
     const byDay={};
-    v.forEach(r=>{const k=toISO(r.date);if(!byDay[k])byDay[k]={v:0,i:0};byDay[k].v++;byDay[k].i+=r.images;});
+    v.forEach(r=>{const k=toISO(r.date);if(!byDay[k])byDay[k]={vins:new Set(),images:0};if(r.vin)byDay[k].vins.add(r.vin);byDay[k].images+=r.images;});
     const days=Object.keys(byDay).sort();
-    const vins=days.map(d=>byDay[d].v), imgs=days.map(d=>byDay[d].i);
-    const tv=vins.reduce((a,b)=>a+b,0), ti=imgs.reduce((a,b)=>a+b,0);
+    const vins=days.map(d=>byDay[d].vins.size);
+    const imgs=days.map(d=>byDay[d].images);
+    const tv=vins.reduce((a,b)=>a+b,0),ti=imgs.reduce((a,b)=>a+b,0);
     document.getElementById('lgV').textContent=tv.toLocaleString();
     document.getElementById('lgI').textContent=ti.toLocaleString();
-    document.getElementById('lgE').textContent=[...new Set(v.map(r=>r.entId).filter(Boolean))].length;
-    document.getElementById('lgR').textContent=[...new Set(v.map(r=>r.teamId).filter(Boolean))].length;
+    document.getElementById('lgE').textContent=new Set(v.map(r=>r.entId).filter(Boolean)).size;
+    document.getElementById('lgR').textContent=new Set(v.map(r=>r.teamId).filter(Boolean)).size;
     document.getElementById('trendSub').textContent=
-      days.length?`Daily · ${fmtD(fromISO(days[0]))} → ${fmtD(fromISO(days[days.length-1]))} · ${tv.toLocaleString()} VINs`:'No data';
+      days.length?`Daily · ${fmtD(fromISO(days[0]))} → ${fmtD(fromISO(days[days.length-1]))} · ${tv.toLocaleString()} unique VINs`:'No data';
     kc('trendC');
     if(!days.length)return;
     charts['trendC']=new Chart(document.getElementById('trendC'),{
       type:'line',
       data:{labels:days.map(d=>fmtD(fromISO(d))),datasets:[
-        {label:'VINs',data:vins,borderColor:'#6c9fff',backgroundColor:'rgba(108,159,255,0.08)',fill:true,tension:.3,pointRadius:days.length>60?0:3,pointBackgroundColor:'#6c9fff',borderWidth:2},
+        {label:'Unique VINs',data:vins,borderColor:'#6c9fff',backgroundColor:'rgba(108,159,255,0.08)',fill:true,tension:.3,pointRadius:days.length>60?0:3,pointBackgroundColor:'#6c9fff',borderWidth:2},
         {label:'Images',data:imgs,borderColor:'#3ecf8e',backgroundColor:'rgba(62,207,142,0.05)',fill:true,tension:.3,pointRadius:days.length>60?0:3,pointBackgroundColor:'#3ecf8e',borderWidth:2,yAxisID:'y2'}
       ]},
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
         plugins:{legend:{display:false},tooltip:TTP},
-        scales:{
-          y:{...BS.y,position:'left'},
-          y2:{...BS.y,position:'right',grid:{display:false}},
-          x:{...BS.x,ticks:{...BS.x.ticks,maxRotation:40,maxTicksLimit:20}}
-        }}
+        scales:{y:{...BS.y,position:'left'},y2:{...BS.y,position:'right',grid:{display:false}},x:{...BS.x,ticks:{...BS.x.ticks,maxRotation:40,maxTicksLimit:20}}}}
     });
   }
 }
 
-// ── PROGRESS CARDS ──────────────────────────────────────────────────────────
+// ── PROGRESS CARDS ────────────────────────────────────────────────────────
 function renderProg(v){
-  const live=mAll.filter(r=>r.stage==='Live').length;
-  const ob=mAll.filter(r=>r.stage==='OB').length;
-  const tot=mAll.length||1;
+  const live=mAll.filter(r=>r.stage==='Live').length, ob=mAll.filter(r=>r.stage==='OB').length, tot=mAll.length||1;
   const lp=Math.round(live/tot*100), op=Math.round(ob/tot*100);
-  const withD=v.filter(r=>r.type!=='No Data Available').length;
-  const noD=v.filter(r=>r.type==='No Data Available').length;
-  const n=v.length||1;
+  const withD=v.filter(r=>r.type!=='No Data Available').length, noD=v.filter(r=>r.type==='No Data Available').length, n=v.length||1;
   const dp=Math.round(withD/n*100), np=Math.round(noD/n*100);
-  const seg={Ent:0,Mid:0,SMB:0};
-  mAll.forEach(r=>{if(seg[r.segment]!==undefined)seg[r.segment]++;});
+  const seg={Ent:0,Mid:0,SMB:0}; mAll.forEach(r=>{if(seg[r.segment]!==undefined)seg[r.segment]++;});
   const ep=Math.round(seg.Ent/tot*100), mp=Math.round(seg.Mid/tot*100), sp=Math.round(seg.SMB/tot*100);
   document.getElementById('progCards').innerHTML=`
     <div class="pc">
@@ -578,7 +539,7 @@ function renderProg(v){
     </div>
     <div class="pc">
       <div class="pnums"><div><span class="pbig cb">${withD.toLocaleString()}</span> <span class="ppct">${dp}%</span></div><div><span class="pbig cc">${noD.toLocaleString()}</span> <span class="ppct">${np}%</span></div></div>
-      <div class="plbl">Data availability (VIN)</div>
+      <div class="plbl">Data availability (rows)</div>
       <div class="pbar"><div class="pseg" style="width:${dp}%;background:var(--blue)"></div><div class="pseg" style="width:${np}%;background:var(--coral)"></div></div>
       <div class="prange"><span>0%</span><span>100%</span></div>
       <div class="pfoot">With data: <strong class="cb">${withD.toLocaleString()}</strong> · No data: <strong class="cc">${noD.toLocaleString()}</strong></div>
@@ -589,11 +550,10 @@ function renderProg(v){
       <div class="pbar"><div class="pseg" style="width:${ep}%;background:var(--purple)"></div><div class="pseg" style="width:${mp}%;background:var(--teal)"></div><div class="pseg" style="width:${sp}%;background:var(--blue)"></div></div>
       <div class="prange"><span>0%</span><span>100%</span></div>
       <div class="pfoot">Ent: <strong class="cp">${seg.Ent}</strong> · Mid: <strong class="ct">${seg.Mid}</strong> · SMB: <strong class="cb">${seg.SMB}</strong></div>
-    </div>
-  `;
+    </div>`;
 }
 
-// ── HBAR ─────────────────────────────────────────────────────────────────────
+// ── HBARS ──────────────────────────────────────────────────────────────────
 function hbars(id,entries,color,fn){
   const max=entries[0]?entries[0][1]:1;
   document.getElementById(id).innerHTML=entries.map(([lbl,cnt])=>`
@@ -604,22 +564,33 @@ function hbars(id,entries,color,fn){
     </div>`).join('');
 }
 
+// Person bars — unique VINs per person
 function renderPersonH(v){
-  const c={};v.forEach(r=>{if(r.person)c[r.person]=(c[r.person]||0)+1;});
-  hbars('personH',Object.entries(c).sort((a,b)=>b[1]-a[1]),'var(--blue)','filterP');
+  const m={};
+  v.forEach(r=>{if(r.person&&r.vin){if(!m[r.person])m[r.person]=new Set();m[r.person].add(r.vin);}});
+  const e=Object.entries(m).map(([k,s])=>[k,s.size]).sort((a,b)=>b[1]-a[1]);
+  hbars('personH',e,'var(--blue)','filterP');
 }
 function filterP(p){document.getElementById('fPerson').value=p;applyF();}
 
+// Account bars — unique VINs per account
 function renderAcctH(v){
-  const c={};v.forEach(r=>{if(r.account)c[r.account]=(c[r.account]||0)+1;});
-  hbars('acctH',Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,10),'var(--coral)',null);
+  const m={};
+  v.forEach(r=>{if(r.account&&r.vin){if(!m[r.account])m[r.account]=new Set();m[r.account].add(r.vin);}});
+  const e=Object.entries(m).map(([k,s])=>[k,s.size]).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  hbars('acctH',e,'var(--coral)',null);
 }
+
+// DMS bars — unique VINs per DMS
 function renderDMSH(v){
-  const c={};v.forEach(r=>{if(r.dms)c[r.dms]=(c[r.dms]||0)+1;});
-  hbars('dmsH',Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,12),'var(--teal)','filterD');
+  const m={};
+  v.forEach(r=>{if(r.dms&&r.vin){if(!m[r.dms])m[r.dms]=new Set();m[r.dms].add(r.vin);}});
+  const e=Object.entries(m).map(([k,s])=>[k,s.size]).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  hbars('dmsH',e,'var(--teal)','filterD');
 }
 function filterD(d){document.getElementById('fDMS').value=d;applyF();}
 
+// Type bars — row count (same row can have same VIN re-processed)
 function renderTypeH(v){
   const c={};v.forEach(r=>{if(r.type)c[r.type]=(c[r.type]||0)+1;});
   hbars('typeH',Object.entries(c).sort((a,b)=>b[1]-a[1]),'var(--purple)',null);
@@ -645,7 +616,6 @@ function renderBreak(m){
   });
 }
 
-// ── TABLE ────────────────────────────────────────────────────────────────────
 function renderTable(m){
   document.getElementById('tblCnt').textContent=m.length;
   document.getElementById('acctTbl').innerHTML=m.map(r=>`<tr>
@@ -662,26 +632,25 @@ function renderTable(m){
   </tr>`).join('');
 }
 
-// ── RENDER ALL ──────────────────────────────────────────────────────────────
+// ── RENDER ALL ─────────────────────────────────────────────────────────────
 function renderAll(m,v){
-  renderKPI(v);           // rooftop/ent always from mAll; VIN metrics from date-filtered v
+  renderKPI(v);
   renderTrend(v);
   renderProg(v);
   renderPersonH(v);
   renderAcctH(v);
   renderDMSH(v);
   renderTypeH(v);
-  renderCSMH(m);          // CSM/breakdown/table respect non-date master filters
+  renderCSMH(m);
   renderBreak(m);
   renderTable(m);
-  const ti=v.reduce((s,r)=>s+r.images,0);
-  const f=getF();
-  const dn=(f.from||f.to)?' · date filtered':'';
+  const uv=uniqueVINs(v), ti=v.reduce((s,r)=>s+r.images,0);
+  const f=getF(); const dn=(f.from||f.to)?' · date filtered':'';
   document.getElementById('syncTxt').textContent=
-    `Synced ${new Date().toLocaleTimeString()} · ${mAll.length} rooftops · ${v.length.toLocaleString()} VINs${dn} · ${ti.toLocaleString()} images`;
+    `Synced ${new Date().toLocaleTimeString()} · ${mAll.length} rooftops · ${uv.toLocaleString()} unique VINs${dn} · ${ti.toLocaleString()} images`;
 }
 
-// ── POPULATE DROPDOWNS ──────────────────────────────────────────────────────
+// ── POPULATE DROPDOWNS ─────────────────────────────────────────────────────
 function populateDDs(){
   const dms=[...new Set([...vAll.map(r=>r.dms),...mAll.map(r=>r.dms)].filter(Boolean))].sort();
   const ds=document.getElementById('fDMS');
@@ -694,30 +663,23 @@ function populateDDs(){
   persons.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;ps.appendChild(o);});
   if(vAll.length){
     const sorted=[...vAll].sort((a,b)=>a.date-b.date);
-    ['fFrom','fTo'].forEach(id=>{
-      document.getElementById(id).min=toISO(sorted[0].date);
-      document.getElementById(id).max=toISO(sorted[sorted.length-1].date);
-    });
-    document.getElementById('vinNote').textContent=
-      `Data: ${fmtD(sorted[0].date)} – ${fmtD(sorted[sorted.length-1].date)}`;
+    const mn=sorted[0].date, mx=sorted[sorted.length-1].date;
+    ['fFrom','fTo'].forEach(id=>{document.getElementById(id).min=toISO(mn);document.getElementById(id).max=toISO(mx);});
+    document.getElementById('vinNote').textContent=`Data: ${fmtD(mn)} – ${fmtD(mx)}`;
   }
 }
 
-// ── DATA LOAD ───────────────────────────────────────────────────────────────
+// ── LOAD ───────────────────────────────────────────────────────────────────
 async function loadData(){
   document.getElementById('syncTxt').textContent='Loading…';
   document.getElementById('errbar').style.display='none';
   ['fDMS','fCSM','fPerson'].forEach(id=>{const s=document.getElementById(id);while(s.options.length>1)s.remove(1);});
   try{
-    // Load current Master + full VIN Level-1
-    const[mr,vr]=await Promise.all([
-      fetch(BASE+'Master'),
-      fetch(BASE+'Data%20VIN%20Level-1')
-    ]);
-    if(!mr.ok||!vr.ok) throw new Error('Sheet fetch failed — ensure the Google Sheet is "Anyone with the link can view"');
+    const[mr,vr]=await Promise.all([fetch(BASE+'Master'),fetch(BASE+'Data%20VIN%20Level-1')]);
+    if(!mr.ok||!vr.ok)throw new Error('Sheet fetch failed — ensure the Google Sheet is "Anyone with the link can view"');
     const[mt,vt]=await Promise.all([mr.text(),vr.text()]);
-    mAll = parseMasterRows(Papa.parse(mt,{skipEmptyLines:true}).data);
-    vAll = parseVIN(Papa.parse(vt,{skipEmptyLines:true}).data);
+    mAll=parseMaster(Papa.parse(mt,{skipEmptyLines:true}).data);
+    vAll=parseVIN(Papa.parse(vt,{skipEmptyLines:true}).data);
     populateDDs();
     renderAll(mAll,vAll);
   }catch(e){
