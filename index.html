@@ -816,19 +816,25 @@ function mkDelta(curr,prev){
 // ----------------------------------------
 // RENDER KPIs
 // ----------------------------------------
-function renderKPIs(k, months, filteredRows){
-  const sortedMonths=MONTHS_ORDER.filter(mk=>months[mk]);
-  const latestMk=sortedMonths[sortedMonths.length-1]||null;
-  const prevMk=sortedMonths[sortedMonths.length-2]||null;
-  const cur=latestMk?months[latestMk]:{vins:0,images:0,ents:0,rooftops:0};
-  const prev=prevMk?months[prevMk]:null;
+function renderKPIs(k, months, momMonths){
+  // momMonths: aggregated WITHOUT date filter so prev month always exists for delta.
+  // months: aggregated WITH date filter (used for current period values).
+  // Latest month in the DATE-FILTERED view = what the user is looking at.
+  // Previous month for delta = always from the non-date-filtered dataset.
+  const sortedFiltered=MONTHS_ORDER.filter(mk=>months[mk]);
+  const sortedAll=MONTHS_ORDER.filter(mk=>momMonths[mk]);
+  const latestMk=sortedFiltered[sortedFiltered.length-1]||sortedAll[sortedAll.length-1]||null;
+  const prevMk=latestMk?(sortedAll[sortedAll.indexOf(latestMk)-1]||null):null;
+  const cur=latestMk&&months[latestMk]?months[latestMk]:(latestMk&&momMonths[latestMk]?momMonths[latestMk]:{vins:0,images:0,ents:0,rooftops:0});
+  const prev=prevMk&&momMonths[prevMk]?momMonths[prevMk]:null;
   const prevLabel=prev?('vs '+fmtMk(prevMk)):'vs prev month';
+  const curLabel=latestMk?fmtMk(latestMk):'latest';
 
   function kpiHtml(label,value,cls,delta,sub){
     let dHtml;
     if(delta.pct!=null){
-      const arrow=delta.dir==='up'?'up':'down';
-      dHtml='<div class="kpi-delta '+arrow+'">'+(arrow==='up'?'↑':'↓')+' '+delta.pct+'%</div>';
+      const dir=delta.dir==='up'?'up':'down';
+      dHtml='<div class="kpi-delta '+dir+'">'+(dir==='up'?'↑':'↓')+' '+delta.pct+'%</div>';
     } else {
       dHtml='<div class="kpi-delta flat">no prev data</div>';
     }
@@ -838,12 +844,12 @@ function renderKPIs(k, months, filteredRows){
   }
 
   $('kpiGrid').innerHTML=[
-    kpiHtml('VINs (latest month)',    num(cur.vins),        'green',  mkDelta(cur.vins,     prev&&prev.vins),     prevLabel),
-    kpiHtml('Images (latest month)',  numK(cur.images),     'cyan',   mkDelta(cur.images,   prev&&prev.images),   prevLabel),
-    kpiHtml('Enterprises (MOM)',      num(cur.ents),        'blue',   mkDelta(cur.ents,     prev&&prev.ents),     prev?('prev: '+prev.ents):prevLabel),
-    kpiHtml('Rooftops (MOM)',         num(cur.rooftops),    'purple', mkDelta(cur.rooftops, prev&&prev.rooftops), prev?('prev: '+prev.rooftops):prevLabel),
-    kpiHtml('Total VINs (in view)',   num(k.totalVins),     '',       mkDelta(cur.vins,     prev&&prev.vins),     prevLabel),
-    kpiHtml('Total Images (in view)', numK(k.totalImages),  'amber',  mkDelta(cur.images,   prev&&prev.images),   prevLabel),
+    kpiHtml('VINs '+curLabel,         num(cur.vins),        'green',  mkDelta(cur.vins,     prev&&prev.vins),     prevLabel),
+    kpiHtml('Images '+curLabel,       numK(cur.images),     'cyan',   mkDelta(cur.images,   prev&&prev.images),   prevLabel),
+    kpiHtml('Enterprises (MOM)',      num(cur.ents),        'blue',   mkDelta(cur.ents,     prev&&prev.ents),     prev?('prev: '+prev.ents+' ('+prevLabel+')'):prevLabel),
+    kpiHtml('Rooftops (MOM)',         num(cur.rooftops),    'purple', mkDelta(cur.rooftops, prev&&prev.rooftops), prev?('prev: '+prev.rooftops+' ('+prevLabel+')'):prevLabel),
+    kpiHtml('Total VINs (filtered)',  num(k.totalVins),     '',       mkDelta(cur.vins,     prev&&prev.vins),     prevLabel),
+    kpiHtml('Total Images (filtered)',numK(k.totalImages),  'amber',  mkDelta(cur.images,   prev&&prev.images),   prevLabel),
     kpiHtml('Total Enterprises',      num(k.totalEnts),     'blue',   mkDelta(cur.ents,     prev&&prev.ents),     prevLabel),
     kpiHtml('Total Rooftops',         num(k.totalRooftops), 'purple', mkDelta(cur.rooftops, prev&&prev.rooftops), prevLabel),
   ].join('');
@@ -1292,7 +1298,16 @@ $('modalClose').addEventListener('click',()=>$('modal').classList.remove('show')
 function paint(){
   const filtered=RAW_VIN.filter(passesFilters);
   const k=aggregate(filtered);
-  renderKPIs(k, k.months, filtered);
+
+  // For MOM delta: ignore the date filter so prev month always exists even when
+  // the user picks "This month" or "Last 7 days". Still respect segment/type/person/stage.
+  const savedFrom=F.from, savedTo=F.to;
+  F.from=null; F.to=null;
+  const noDateFiltered=RAW_VIN.filter(passesFilters);
+  F.from=savedFrom; F.to=savedTo;
+  const kAll=aggregate(noDateFiltered);
+
+  renderKPIs(k, k.months, kAll.months);
   renderTrend(k.months);
   renderEntMom(k.months);
   renderTypeMom(k.months);
