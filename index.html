@@ -911,7 +911,7 @@ function buildTrendBuckets(rows, range){
       buckets.push({
         label:d.toLocaleDateString('en-US',{month:'short',day:'numeric'}),
         key:d.toISOString().slice(0,10),
-        vins:0,images:0,ents:new Set(),_rooftops:new Set()
+        vins:0,images:0,ents:new Set(),_rooftops:new Set(),typeMap:{}
       });
       cur.setDate(cur.getDate()+1);
     }
@@ -924,6 +924,8 @@ function buildTrendBuckets(rows, range){
         b.images+=parseInt(r['Image Count'])||0;
         if(r['Enterprise ID']) b.ents.add(r['Enterprise ID']);
         if(r['Team ID']) b._rooftops.add(r['Team ID']);
+        const t=r['Type']||'Unknown';
+        b.typeMap[t]=(b.typeMap[t]||0)+1;
       }
     }
   } else {
@@ -934,7 +936,7 @@ function buildTrendBuckets(rows, range){
       const sameYear=cur.getFullYear()===now.getFullYear();
       buckets.push({
         label:cur.toLocaleDateString('en-US',sameYear?{month:'short'}:{month:'short',year:'2-digit'}),
-        key:mk, vins:0, images:0, ents:new Set(), _rooftops:new Set()
+        key:mk, vins:0, images:0, ents:new Set(), _rooftops:new Set(), typeMap:{}
       });
       cur.setMonth(cur.getMonth()+1);
     }
@@ -946,6 +948,8 @@ function buildTrendBuckets(rows, range){
         b.images+=parseInt(r['Image Count'])||0;
         if(r['Enterprise ID']) b.ents.add(r['Enterprise ID']);
         if(r['Team ID']) b._rooftops.add(r['Team ID']);
+        const t=r['Type']||'Unknown';
+        b.typeMap[t]=(b.typeMap[t]||0)+1;
       }
     }
   }
@@ -1054,6 +1058,11 @@ function renderTrend(rows){
       ticks:{font:{size:11},color:'#22d3ee',precision:0,padding:8,callback:v=>numK(v)}};
   }
 
+  const TYPE_COLORS_TOOLTIP = {
+    'Live':'#4ade80','Console Upload':'#6b9eff','Console Download':'#22d3ee',
+    'DMS Download':'#f5c265','No Data Available':'#76767e'
+  };
+
   charts.cTrend=new Chart($('cTrend'),{
     type:isBar?'bar':'line',plugins:[ChartDataLabels],
     data:{labels,datasets},
@@ -1062,9 +1071,35 @@ function renderTrend(rows){
       interaction:{mode:'index',intersect:false},
       layout:{padding:{top:24,left:8,right:8}},
       plugins:{legend:{display:false},
-        tooltip:{backgroundColor:PAL.ink,titleColor:isDark?'#111':'#fff',bodyColor:isDark?'#111':'#fff',
-          padding:10,displayColors:true,boxPadding:4,cornerRadius:6,
-          callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toLocaleString()}},
+        tooltip:{
+          backgroundColor:isDark?'#1c1c1f':'#ffffff',
+          titleColor:isDark?'#f0efe9':'#0b0b0c',
+          bodyColor:isDark?'#b0b0b8':'#404045',
+          borderColor:isDark?'#2a2a2f':'#e8e6df',
+          borderWidth:1,
+          padding:{top:10,bottom:10,left:12,right:12},
+          displayColors:true, boxPadding:5, cornerRadius:8,
+          callbacks:{
+            label: ctx => {
+              const base = ctx.dataset.label+': '+ctx.parsed.y.toLocaleString();
+              return base;
+            },
+            afterBody: items => {
+              // Only show type breakdown when VINs dataset is present in this tooltip
+              const vinItem = items.find(i=>i.dataset.label==='VINs');
+              if(!vinItem) return [];
+              const bucket = buckets[vinItem.dataIndex];
+              if(!bucket || !bucket.typeMap || !Object.keys(bucket.typeMap).length) return [];
+              const sorted = Object.entries(bucket.typeMap).sort((a,b)=>b[1]-a[1]);
+              const lines = ['', '  VIN breakdown by type:'];
+              sorted.forEach(([type, count]) => {
+                const pct = bucket.vins ? ((count/bucket.vins)*100).toFixed(0) : 0;
+                lines.push('  '+type+': '+count.toLocaleString()+' ('+pct+'%)');
+              });
+              return lines;
+            }
+          }
+        },
         datalabels:{display:true}},
       scales
     }
