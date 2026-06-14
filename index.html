@@ -526,6 +526,10 @@ tr:hover td{background:var(--bg);}
             <button class="trend-tab" data-ur="last_month">Last month</button>
             <button class="trend-tab sel" data-ur="all">All time</button>
           </div>
+          <div class="trend-tabs" id="userChartTypeTabs">
+            <button class="trend-tab sel" data-uct="bar">Bar</button>
+            <button class="trend-tab" data-uct="line">Curve</button>
+          </div>
           <div class="trend-tabs" id="userMetricTabs">
             <button class="trend-tab sel" data-u="vins">VINs</button>
             <button class="trend-tab" data-u="images">Images</button>
@@ -533,7 +537,8 @@ tr:hover td{background:var(--bg);}
           </div>
         </div>
       </div>
-      <div id="userHeatmap"></div>
+      <div class="chart-wrap tall"><canvas id="cUserEff"></canvas></div>
+      <div id="userLegend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;justify-content:center;"></div>
     </div>
   </div>
 
@@ -584,7 +589,9 @@ const MONTHS_ORDER = [];
 
 const F = { from:null, to:null, preset:'last_30', seg:null, type:null, person:null, stage:'', entname:null, rooftop:null, dms:null };
 let trendRange = 'last_3_months'; // owns the trend chart date range independently
-let userRange = 'all'; // owns the user efficiency heatmap date range
+let userRange = 'all';
+let userChartMode = 'bar'; // 'bar' or 'line' for user efficiency chart
+let userPersonHidden = new Set(); // hidden persons in user chart
 let trendChartType = 'line'; // 'line' or 'bar'
 // trendMetrics: Set of active metrics — vins, images, enterprises, rooftops
 let trendMetrics = new Set(['vins','images']);
@@ -1528,73 +1535,134 @@ function renderImgPerVin(months){
 // USER HEATMAP
 // ----------------------------------------
 function renderUserHeatmap(personMonthMap){
-  // Build buckets for userRange using buildTrendBuckets logic (day or month)
-  const {buckets, granularity} = buildTrendBuckets(window._lastFilteredRows||[], userRange);
-  if(!buckets.length){$('userHeatmap').innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0">No data for this range</div>';return;}
+  renderUserChart();
+}
 
-  // Re-aggregate person data per bucket from raw rows
-  const personBuckets = {}; // person -> bucketKey -> {vins,images,live}
-  const rows = window._lastFilteredRows||[];
+function renderUserChart(){
+  killChart('cUserEff');
+  const canvas=$('cUserEff');
+  if(!canvas) return;
+  const rows=window._lastFilteredRows||[];
+  if(!rows.length) return;
+
+  const {buckets, granularity}=buildTrendBuckets(rows, userRange);
+  if(!buckets.length) return;
+
+  // Aggregate per-person per-bucket
+  const personData={}; // person -> array of values per bucket
   for(const r of rows){
-    const p=(r['Person Responsible']||'(unassigned)').trim();
-    if(p==='(unassigned)') continue;
-    // Find bucket
+    const p=(r['Person Responsible']||'').trim();
+    if(!p||p==='(unassigned)') continue;
     let bKey=null;
-    if(granularity==='day' && r._date){
-      bKey = r._date.toISOString().slice(0,10);
-    } else if(granularity==='month' && r._month){
-      bKey = r._month;
-    }
+    if(granularity==='day'&&r._date) bKey=r._date.toISOString().slice(0,10);
+    else if(granularity==='month'&&r._month) bKey=r._month;
     if(!bKey) continue;
     const b=buckets.find(bk=>bk.key===bKey);
     if(!b) continue;
-    if(!personBuckets[p]) personBuckets[p]={};
-    if(!personBuckets[p][bKey]) personBuckets[p][bKey]={vins:0,images:0,live:0};
-    personBuckets[p][bKey].vins++;
-    personBuckets[p][bKey].images+=parseInt(r['Image Count'])||0;
-    if(r['Type']==='Live') personBuckets[p][bKey].live++;
+    if(!personData[p]) personData[p]={};
+    if(!personData[p][bKey]) personData[p][bKey]={vins:0,images:0,live:0};
+    personData[p][bKey].vins++;
+    personData[p][bKey].images+=parseInt(r['Image Count'])||0;
+    if(r['Type']==='Live') personData[p][bKey].live++;
   }
 
-  const persons=Object.keys(personBuckets).sort();
-  if(!persons.length){$('userHeatmap').innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0">No person data for this range</div>';return;}
+  const persons=Object.keys(personData).sort();
+  if(!persons.length) return;
 
   const PAL=getPal();
-  let maxVal=0;
-  persons.forEach(p=>buckets.forEach(b=>{
-    const v=(personBuckets[p]&&personBuckets[p][b.key])?personBuckets[p][b.key][userMetric]||0:0;
-    if(v>maxVal)maxVal=v;
-  }));
+  const isLine=userChartMode==='line';
+  const ptBorder=isDark?PAL.ink:'#fff';
+  const labels=buckets.map(b=>b.label);
 
-  function cellColor(v){
-    if(!v||maxVal===0)return isDark?'rgba(255,255,255,.04)':'rgba(0,0,0,.04)';
-    const t=v/maxVal;
-    if(isDark) return 'rgba(107,158,255,'+(t*.7+.08).toFixed(2)+')';
-    return 'rgba(31,63,114,'+(t*.65+.08).toFixed(2)+')';
-  }
-  function textColor(v){
-    if(!v)return 'transparent';
-    return v/maxVal>0.5?'#fff':PAL.accent;
-  }
+  const datasets=persons.map((p,i)=>{
+    const col=PERSON_COLORS[i%PERSON_COLORS.length];
+    const data=buckets.map(b=>{
+      const d=personData[p]&&personData[p][b.key];
+      return d?d[userMetric]||0:0;
+    });
+    const hidden=userPersonHidden.has(p);
+    return {
+      label:p, data, hidden,
+      backgroundColor: isLine?'transparent':hexToRgba(col, hidden?.2:.75),
+      borderColor: col,
+      borderWidth: isLine?2:1,
+      borderRadius: isLine?0:4,
+      maxBarThickness: 20,
+      tension: 0.35,
+      pointRadius: isLine?3:0,
+      pointHoverRadius: isLine?6:0,
+      pointBackgroundColor: col,
+      pointBorderColor: ptBorder,
+      fill: false,
+      spanGaps: false,
+      datalabels:{
+        display: !hidden,
+        anchor: isLine?'end':'end',
+        align: isLine?'top':'end',
+        clamp: true,
+        color: PAL.muted,
+        font:{family:"'JetBrains Mono',monospace",size:9,weight:'600'},
+        formatter: v=>v>0?numK(v):'',
+        padding:{top:1,bottom:1},
+      },
+    };
+  });
 
-  // Column headers
-  const headHtml='<div class="hm-head"><div class="hm-head-blank"></div>'
-    +buckets.map(b=>'<div class="hm-head-lbl">'+esc(b.label)+'</div>').join('')
-    +'<div class="hm-head-lbl" style="min-width:50px;text-align:right">Total</div></div>';
+  charts.cUserEff=new Chart(canvas,{
+    type: isLine?'line':'bar', plugins:[ChartDataLabels],
+    data:{labels,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      layout:{padding:{top:24,left:4,right:4}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:isDark?'#1c1c1f':'#ffffff',
+          titleColor:isDark?'#f0efe9':'#0b0b0c',
+          bodyColor:isDark?'#b0b0b8':'#404045',
+          borderColor:isDark?'#2a2a2f':'#e8e6df',borderWidth:1,
+          padding:{top:10,bottom:10,left:12,right:12},
+          displayColors:true,boxPadding:5,cornerRadius:8,
+          filter:item=>!datasets[item.datasetIndex].hidden,
+          callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toLocaleString()}
+        },
+        datalabels:{display:true}
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:10},color:PAL.muted,maxRotation:granularity==='day'?30:0,autoSkip:true,maxTicksLimit:granularity==='day'?31:13}},
+        y:{grid:{color:PAL.line,drawBorder:false},beginAtZero:true,
+           ticks:{font:{size:10},color:PAL.muted,precision:0,padding:6,callback:v=>numK(v)}}
+      }
+    }
+  });
 
-  const rowsHtml=persons.map(p=>{
-    const cells=buckets.map(b=>{
-      const v=(personBuckets[p]&&personBuckets[p][b.key])?personBuckets[p][b.key][userMetric]||0:0;
-      return'<div class="hm-cell" style="background:'+cellColor(v)+';color:'+textColor(v)+'" title="'+esc(p)+' · '+esc(b.label)+': '+numK(v)+'">'+(v>0?numK(v):'')+'</div>';
+  // Clickable legend chips
+  const legend=$('userLegend');
+  if(legend){
+    legend.innerHTML=persons.map((p,i)=>{
+      const col=PERSON_COLORS[i%PERSON_COLORS.length];
+      const hidden=userPersonHidden.has(p);
+      return '<div class="type-legend-chip '+(hidden?'inactive':'active')+'" data-person="'+esc(p)+'" style="color:'+col+';border-color:'+(hidden?'var(--line)':col)+'">'
+        +'<span class="tl-dot" style="background:'+col+'"></span>'+esc(p)+'</div>';
     }).join('');
-    const total=buckets.reduce((s,b)=>{const d=personBuckets[p]&&personBuckets[p][b.key];return s+(d?d[userMetric]||0:0);},0);
-    return '<div class="hm-row" style="cursor:pointer"' + ' data-p="' + esc(p) + '">' + '<div class="hm-label" title="' + esc(p) + '">' + esc(p) + '</div>' + cells + '<div style="font-family:monospace;font-size:10px;color:var(--muted);min-width:50px;text-align:right;padding-left:6px;">' + numK(total) + '</div></div>';
-  }).join('');
+    legend.querySelectorAll('.type-legend-chip').forEach(chip=>{
+      chip.addEventListener('click',()=>{
+        const p=chip.dataset.person;
+        const hidden=userPersonHidden.has(p);
+        if(!hidden&&persons.filter(x=>!userPersonHidden.has(x)).length<=1) return;
+        if(hidden) userPersonHidden.delete(p); else userPersonHidden.add(p);
+        renderUserChart();
+      });
+    });
+  }
 
-  $('userHeatmap').innerHTML=headHtml+'<div class="heatmap">'+rowsHtml+'</div>';
   const rangeLabels={'today':'Today','yesterday':'Yesterday','last_7':'Last 7 days',
     'this_month':'This month','last_month':'Last month','all':'All time'};
-  $('userEffSub').textContent=(rangeLabels[userRange]||userRange)+' · '+(userMetric==='vins'?'VINs':userMetric==='images'?'images':'live VINs')+' per person · '+persons.length+' active · by '+(granularity==='day'?'day':'month')+' · click row to drill';
+  const metricLabel=userMetric==='vins'?'VINs':userMetric==='images'?'Images':'Live VINs';
+  $('userEffSub').textContent=(rangeLabels[userRange]||userRange)+' · '+metricLabel+' per person · by '+(granularity==='day'?'day':'month')+' · click legend to filter';
 }
+
 
 // ----------------------------------------
 // PERSON TREND LINE
@@ -1792,7 +1860,7 @@ function paint(){
   renderMetricChips();
   renderTrend(filtered);
   renderTypeMom(filtered);
-  renderUserHeatmap(k.personMonthMap);
+  renderUserChart();
   renderEntTable(k.ents);
 }
 
@@ -2047,7 +2115,14 @@ $('userRangeTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
   userRange=b.dataset.ur;
   $('userRangeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
-  renderUserHeatmap({});
+  userPersonHidden=new Set();
+  renderUserChart();
+});
+$('userChartTypeTabs').addEventListener('click',e=>{
+  const b=e.target.closest('.trend-tab');if(!b)return;
+  userChartMode=b.dataset.uct;
+  $('userChartTypeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
+  renderUserChart();
 });
 // Heatmap row click delegation
 document.addEventListener('click',e=>{
@@ -2059,7 +2134,7 @@ $('userMetricTabs').addEventListener('click',e=>{
   userMetric=b.dataset.u;
   $('userMetricTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
   const k=aggregate(RAW_VIN.filter(passesFilters));
-  renderUserHeatmap(k.personMonthMap);
+  renderUserChart();
 });
 $('fStage').addEventListener('change',e=>{F.stage=e.target.value;refresh();});
 $('resetBtn').addEventListener('click',()=>{
