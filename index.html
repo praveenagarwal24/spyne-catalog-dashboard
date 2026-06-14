@@ -155,6 +155,13 @@ main{padding:22px 28px 80px;max-width:1600px;margin:0 auto;}
 .trend-legend-item .ldot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
 .ldot.line{border-radius:0;height:2px;width:16px;}
 .trend-legend-item .lval{color:var(--ink);font-weight:500;}
+.type-legend-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
+  font:500 12px 'Inter';cursor:pointer;border:1.5px solid transparent;transition:all .15s;user-select:none;white-space:nowrap;}
+.type-legend-chip .tl-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;transition:opacity .15s;}
+.type-legend-chip.active{background:var(--surface);border-color:currentColor;}
+.type-legend-chip.inactive{background:var(--bg);border-color:var(--line);color:var(--muted);opacity:.5;}
+.type-legend-chip.inactive .tl-dot{opacity:.3;}
+#typeLegend{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;justify-content:center;}
 .metric-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;
   font:500 12px 'Inter';cursor:pointer;border:1.5px solid transparent;transition:all .15s;user-select:none;white-space:nowrap;}
 .metric-chip .chip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
@@ -1368,11 +1375,13 @@ function typeColor(t,PAL){
 // TYPE ORDER for consistent display
 const TYPE_DISPLAY_ORDER = ['DMS Download','Console Upload','Console Download','Live','No Data Available'];
 
+// Track which types are hidden in the type breakdown chart
+let typeHidden = new Set(); // set of hidden type labels
+
 function renderTypeMom(rows){
   killChart('cTypeMom');
   if(!rows||!rows.length) return;
 
-  // Use buildTrendBuckets for day/month granularity based on typeRange
   const {buckets, granularity} = buildTrendBuckets(rows, typeRange);
   if(!buckets.length) return;
 
@@ -1380,44 +1389,58 @@ function renderTypeMom(rows){
   const labels=buckets.map(b=>b.label);
   const ptBorder=isDark?PAL.ink:'#fff';
 
-  // Collect all type names from buckets
+  // Collect and order types
   const allTypeSet=new Set();
   buckets.forEach(b=>Object.keys(b.typeMap||{}).forEach(t=>allTypeSet.add(t)));
   const orderedTypes=TYPE_DISPLAY_ORDER.filter(t=>allTypeSet.has(t));
   const otherTypes=[...allTypeSet].filter(t=>!TYPE_DISPLAY_ORDER.includes(t)&&t).sort();
 
-  const isLine = typeChartMode==='line';
+  // Final type list (merge others if >1)
+  let typeList=[...orderedTypes];
+  let othersData=null;
+  if(otherTypes.length===1){ typeList.push(otherTypes[0]); }
+  else if(otherTypes.length>1){
+    typeList.push('Others');
+    othersData=buckets.map(b=>otherTypes.reduce((s,t)=>s+((b.typeMap&&b.typeMap[t])||0),0));
+  }
 
-  const makeDs = (t, color) => {
-    const data=buckets.map(b=>b.typeMap&&b.typeMap[t]?b.typeMap[t]:0);
+  const isLine = typeChartMode==='line';
+  const visibleCount = typeList.filter(t=>!typeHidden.has(t)).length;
+
+  const makeDs = (t, color, dataOverride) => {
+    const data = dataOverride || buckets.map(b=>b.typeMap&&b.typeMap[t]?b.typeMap[t]:0);
+    const hidden = typeHidden.has(t);
     return {
       label:t, data,
-      backgroundColor: isLine ? 'transparent' : hexToRgba(color,.8),
+      hidden,
+      backgroundColor: isLine ? 'transparent' : hexToRgba(color, hidden?.3:.8),
       borderColor: color,
       borderWidth: isLine ? 2 : 1,
       borderRadius: isLine ? 0 : 4,
-      maxBarThickness: 20,
+      maxBarThickness: 24,
       tension: 0.35,
       pointRadius: isLine ? 3 : 0,
       pointHoverRadius: isLine ? 6 : 0,
       pointBackgroundColor: color,
       pointBorderColor: ptBorder,
       fill: false,
-      datalabels:{display:false},
+      datalabels:{
+        display: !hidden,
+        anchor: isLine ? 'end' : 'end',
+        align: isLine ? 'top' : 'end',
+        clamp: true,
+        color: PAL.muted,
+        font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
+        formatter: v => v > 0 ? numK(v) : '',
+        padding:{top:1,bottom:1},
+      },
     };
   };
 
-  const datasets=[
-    ...orderedTypes.map(t=>makeDs(t, typeColor(t,PAL))),
-    ...otherTypes.map(t=>makeDs(t, PAL.red)),
-  ];
-  if(otherTypes.length>1){
-    // Merge all "other" types into single "Others" series
-    const othData=buckets.map(b=>otherTypes.reduce((s,t)=>s+((b.typeMap&&b.typeMap[t])||0),0));
-    const othDs=makeDs('Others', PAL.red);
-    othDs.data=othData;
-    datasets.splice(datasets.length-otherTypes.length, otherTypes.length, othDs);
-  }
+  const datasets=typeList.map(t=>{
+    const color = t==='Others' ? PAL.red : typeColor(t,PAL);
+    return makeDs(t, color, t==='Others'?othersData:null);
+  });
 
   charts.cTypeMom=new Chart($('cTypeMom'),{
     type: isLine?'line':'bar', plugins:[ChartDataLabels],
@@ -1425,7 +1448,7 @@ function renderTypeMom(rows){
     options:{
       responsive:true,maintainAspectRatio:false,
       interaction:{mode:'index',intersect:false},
-      layout:{padding:{top:10}},
+      layout:{padding:{top:24,left:4,right:4}},
       plugins:{
         legend:{display:false},
         tooltip:{
@@ -1435,9 +1458,10 @@ function renderTypeMom(rows){
           borderColor:isDark?'#2a2a2f':'#e8e6df', borderWidth:1,
           padding:{top:10,bottom:10,left:12,right:12},
           displayColors:true,boxPadding:5,cornerRadius:8,
+          filter: item => !datasets[item.datasetIndex].hidden,
           callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toLocaleString()}
         },
-        datalabels:{display:false}
+        datalabels:{display:true}
       },
       scales:{
         x:{grid:{display:false},ticks:{font:{size:10},color:PAL.muted,maxRotation:granularity==='day'?30:0,autoSkip:true,maxTicksLimit:granularity==='day'?31:13}},
@@ -1447,9 +1471,26 @@ function renderTypeMom(rows){
     }
   });
 
-  $('typeLegend').innerHTML=datasets.map(ds=>
-    '<div class="trend-legend-item"><span class="ldot'+(isLine?' line':'')+'" style="background:'+ds.borderColor+'"></span><span>'+esc(ds.label)+'</span></div>'
-  ).join('');
+  // Render clickable legend chips
+  const legend=$('typeLegend');
+  legend.innerHTML=typeList.map(t=>{
+    const color = t==='Others' ? PAL.red : typeColor(t,PAL);
+    const hidden = typeHidden.has(t);
+    return '<div class="type-legend-chip '+(hidden?'inactive':'active')+'" data-type="'+esc(t)+'" style="color:'+color+';border-color:'+(hidden?'var(--line)':color)+'">'
+      +'<span class="tl-dot" style="background:'+color+'"></span>'
+      +esc(t)+'</div>';
+  }).join('');
+
+  legend.querySelectorAll('.type-legend-chip').forEach(chip=>{
+    chip.addEventListener('click',()=>{
+      const t=chip.dataset.type;
+      const currentlyHidden=typeHidden.has(t);
+      // Don't allow hiding all — must keep at least 1 visible
+      if(!currentlyHidden && typeList.filter(x=>!typeHidden.has(x)).length<=1) return;
+      if(currentlyHidden) typeHidden.delete(t); else typeHidden.add(t);
+      renderTypeMom(window._lastFilteredRows||[]);
+    });
+  });
 
   const rangeLabels={'today':'Today','yesterday':'Yesterday','last_7':'Last 7 days',
     'this_month':'This month','last_month':'Last month','last_3_months':'Last 3 months'};
@@ -1973,6 +2014,7 @@ $('typeRangeTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
   typeRange=b.dataset.tr;
   $('typeRangeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
+  typeHidden=new Set();
   killChart('cTypeMom');renderTypeMom(window._lastFilteredRows||[]);
 });
 $('typeTabs').addEventListener('click',e=>{
