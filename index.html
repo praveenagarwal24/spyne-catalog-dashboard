@@ -1242,22 +1242,21 @@ function renderTrend(rows){
               const idx = items[0].dataIndex;
               const bucket = buckets[idx];
               if(!bucket) return [];
-              const lines = [];
+              const ttLines = [];
 
               // VIN type breakdown — fixed display order
               const vinItem = items.find(i=>i.dataset.label==='VINs');
               if(vinItem && bucket.typeMap && Object.keys(bucket.typeMap).length){
                 const TYPE_ORDER = ['DMS Download','Console Upload','Console Download','DMS Upload','Live'];
                 const allTypes = Object.keys(bucket.typeMap);
-                // Ordered types first, then anything else alphabetically as "Others"
                 const ordered = TYPE_ORDER.filter(t => bucket.typeMap[t]);
                 const others  = allTypes.filter(t => !TYPE_ORDER.includes(t) && bucket.typeMap[t])
-                                        .sort((a,b)=>bucket.typeMap[b]-bucket.typeMap[a]);
-                lines.push('', '  VIN breakdown by type:');
+                                        .sort((a,b) => bucket.typeMap[b] - bucket.typeMap[a]);
+                ttLines.push('', '  VIN breakdown by type:');
                 [...ordered, ...others].forEach(type => {
                   const count = bucket.typeMap[type] || 0;
                   const pct = bucket.vins ? ((count/bucket.vins)*100).toFixed(0) : 0;
-                  lines.push('  '+type+': '+count.toLocaleString()+' ('+pct+'%)');
+                  ttLines.push('  '+type+': '+count.toLocaleString()+' ('+pct+'%)');
                 });
               }
 
@@ -1265,14 +1264,14 @@ function renderTrend(rows){
               const roofItem = items.find(i=>i.dataset.label==='Rooftops');
               if(roofItem && bucket.personRooftops && Object.keys(bucket.personRooftops).length){
                 const sorted = Object.entries(bucket.personRooftops).sort((a,b)=>b[1]-a[1]);
-                lines.push('', '  Rooftops by person:');
+                ttLines.push('', '  Rooftops by person:');
                 sorted.forEach(([person, count]) => {
                   const pct = bucket.rooftops ? ((count/bucket.rooftops)*100).toFixed(0) : 0;
-                  lines.push('  '+person+': '+count+' rooftop'+(count!==1?'s':'')+' ('+pct+'%)');
+                  ttLines.push('  '+person+': '+count+' rooftop'+(count!==1?'s':'')+' ('+pct+'%)');
                 });
               }
 
-              return lines;
+              return ttLines;
             }
           }
         },
@@ -1299,6 +1298,7 @@ function renderTrend(rows){
 // ENT / ROOFTOP MOM BARS
 // ----------------------------------------
 function renderMomBar(canvasId, sortedMk, values, color, labelCb){
+  if(!$(canvasId)) return; // canvas removed from DOM
   killChart(canvasId);
   const PAL=getPal();
   const labels=mkMonthLabels(sortedMk);
@@ -1674,7 +1674,6 @@ function paint(){
   renderKPIs(k, k.months, kAll.months);
   renderMetricChips();
   renderTrend(filtered);
-  renderEntMom(k.months);
   renderTypeMom(k.months);
   renderImgPerVin(k.months);
   renderUserHeatmap(k.personMonthMap);
