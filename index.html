@@ -517,29 +517,26 @@ tr:hover td{background:var(--bg);}
           <h3>User efficiency MOM</h3>
           <div class="panel-sub" id="userEffSub">VINs processed per person per month · click row to drill</div>
         </div>
-        <div class="trend-tabs" id="userMetricTabs">
-          <button class="trend-tab sel" data-u="vins">VINs</button>
-          <button class="trend-tab" data-u="images">Images</button>
-          <button class="trend-tab" data-u="live">Live VINs</button>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div class="trend-tabs" id="userRangeTabs">
+            <button class="trend-tab" data-ur="today">Today</button>
+            <button class="trend-tab" data-ur="yesterday">Yesterday</button>
+            <button class="trend-tab" data-ur="last_7">Last 7d</button>
+            <button class="trend-tab" data-ur="this_month">This month</button>
+            <button class="trend-tab" data-ur="last_month">Last month</button>
+            <button class="trend-tab sel" data-ur="all">All time</button>
+          </div>
+          <div class="trend-tabs" id="userMetricTabs">
+            <button class="trend-tab sel" data-u="vins">VINs</button>
+            <button class="trend-tab" data-u="images">Images</button>
+            <button class="trend-tab" data-u="live">Live VINs</button>
+          </div>
         </div>
       </div>
       <div id="userHeatmap"></div>
     </div>
   </div>
 
-  <!-- ── ROW 5: Per-person breakdown line chart ── -->
-  <div class="panel-grid">
-    <div class="panel p-full">
-      <div class="panel-header">
-        <div class="panel-title-wrap">
-          <h3>Person efficiency trend</h3>
-          <div class="panel-sub" id="personTrendSub">VINs per person per month · all active persons</div>
-        </div>
-      </div>
-      <div class="chart-wrap tall"><canvas id="cPersonTrend"></canvas></div>
-      <div class="trend-legend" id="personTrendLegend"></div>
-    </div>
-  </div>
 
   <!-- ── ROW 6: Enterprise deep-dive table ── -->
   <div class="panel-grid">
@@ -587,6 +584,7 @@ const MONTHS_ORDER = [];
 
 const F = { from:null, to:null, preset:'last_30', seg:null, type:null, person:null, stage:'', entname:null, rooftop:null, dms:null };
 let trendRange = 'last_3_months'; // owns the trend chart date range independently
+let userRange = 'all'; // owns the user efficiency heatmap date range
 let trendChartType = 'line'; // 'line' or 'bar'
 // trendMetrics: Set of active metrics — vins, images, enterprises, rooftops
 let trendMetrics = new Set(['vins','images']);
@@ -1530,50 +1528,72 @@ function renderImgPerVin(months){
 // USER HEATMAP
 // ----------------------------------------
 function renderUserHeatmap(personMonthMap){
-  const sortedMk=MONTHS_ORDER.filter(mk=>mk);
-  const persons=Object.keys(personMonthMap).filter(p=>p!=='(unassigned)').sort();
-  if(!persons.length||!sortedMk.length){$('userHeatmap').innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0">No data</div>';return;}
-  const PAL=getPal();
+  // Build buckets for userRange using buildTrendBuckets logic (day or month)
+  const {buckets, granularity} = buildTrendBuckets(window._lastFilteredRows||[], userRange);
+  if(!buckets.length){$('userHeatmap').innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0">No data for this range</div>';return;}
 
-  // Find max value for color scaling
+  // Re-aggregate person data per bucket from raw rows
+  const personBuckets = {}; // person -> bucketKey -> {vins,images,live}
+  const rows = window._lastFilteredRows||[];
+  for(const r of rows){
+    const p=(r['Person Responsible']||'(unassigned)').trim();
+    if(p==='(unassigned)') continue;
+    // Find bucket
+    let bKey=null;
+    if(granularity==='day' && r._date){
+      bKey = r._date.toISOString().slice(0,10);
+    } else if(granularity==='month' && r._month){
+      bKey = r._month;
+    }
+    if(!bKey) continue;
+    const b=buckets.find(bk=>bk.key===bKey);
+    if(!b) continue;
+    if(!personBuckets[p]) personBuckets[p]={};
+    if(!personBuckets[p][bKey]) personBuckets[p][bKey]={vins:0,images:0,live:0};
+    personBuckets[p][bKey].vins++;
+    personBuckets[p][bKey].images+=parseInt(r['Image Count'])||0;
+    if(r['Type']==='Live') personBuckets[p][bKey].live++;
+  }
+
+  const persons=Object.keys(personBuckets).sort();
+  if(!persons.length){$('userHeatmap').innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0">No person data for this range</div>';return;}
+
+  const PAL=getPal();
   let maxVal=0;
-  persons.forEach(p=>sortedMk.forEach(mk=>{
-    const v=(personMonthMap[p]&&personMonthMap[p][mk])?personMonthMap[p][mk][userMetric]||0:0;
+  persons.forEach(p=>buckets.forEach(b=>{
+    const v=(personBuckets[p]&&personBuckets[p][b.key])?personBuckets[p][b.key][userMetric]||0:0;
     if(v>maxVal)maxVal=v;
   }));
 
   function cellColor(v){
     if(!v||maxVal===0)return isDark?'rgba(255,255,255,.04)':'rgba(0,0,0,.04)';
     const t=v/maxVal;
-    if(isDark) return `rgba(107,158,255,${(t*.7+.08).toFixed(2)})`;
-    return `rgba(31,63,114,${(t*.65+.08).toFixed(2)})`;
+    if(isDark) return 'rgba(107,158,255,'+(t*.7+.08).toFixed(2)+')';
+    return 'rgba(31,63,114,'+(t*.65+.08).toFixed(2)+')';
   }
   function textColor(v){
     if(!v)return 'transparent';
-    const t=v/maxVal;
-    return t>0.5?'#fff':PAL.accent;
+    return v/maxVal>0.5?'#fff':PAL.accent;
   }
 
-  const headHtml=`<div class="hm-head"><div class="hm-head-blank"></div>${sortedMk.map(mk=>{
-    const [y,m]=mk.split('-');
-    return`<div class="hm-head-lbl">${new Date(+y,+m-1,1).toLocaleDateString('en-US',{month:'short',year:'2-digit'})}</div>`;
-  }).join('')}</div>`;
+  // Column headers
+  const headHtml='<div class="hm-head"><div class="hm-head-blank"></div>'
+    +buckets.map(b=>'<div class="hm-head-lbl">'+esc(b.label)+'</div>').join('')
+    +'<div class="hm-head-lbl" style="min-width:50px;text-align:right">Total</div></div>';
 
   const rowsHtml=persons.map(p=>{
-    const cells=sortedMk.map(mk=>{
-      const data=personMonthMap[p]&&personMonthMap[p][mk];
-      const v=data?data[userMetric]||0:0;
-      return`<div class="hm-cell" style="background:${cellColor(v)};color:${textColor(v)}" title="${p} · ${fmtMk(mk)}: ${numK(v)}">${v>0?numK(v):''}</div>`;
+    const cells=buckets.map(b=>{
+      const v=(personBuckets[p]&&personBuckets[p][b.key])?personBuckets[p][b.key][userMetric]||0:0;
+      return'<div class="hm-cell" style="background:'+cellColor(v)+';color:'+textColor(v)+'" title="'+esc(p)+' · '+esc(b.label)+': '+numK(v)+'">'+(v>0?numK(v):'')+'</div>';
     }).join('');
-    const total=sortedMk.reduce((s,mk)=>{const d=personMonthMap[p]&&personMonthMap[p][mk];return s+(d?d[userMetric]||0:0);},0);
-    return`<div class="hm-row" onclick="drillPerson('${esc(p)}')" style="cursor:pointer" title="Click to drill ${p}">
-      <div class="hm-label" title="${esc(p)}">${esc(p)}</div>${cells}
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);min-width:50px;text-align:right;padding-left:6px;">${numK(total)}</div>
-    </div>`;
+    const total=buckets.reduce((s,b)=>{const d=personBuckets[p]&&personBuckets[p][b.key];return s+(d?d[userMetric]||0:0);},0);
+    return '<div class="hm-row" style="cursor:pointer"' + ' data-p="' + esc(p) + '">' + '<div class="hm-label" title="' + esc(p) + '">' + esc(p) + '</div>' + cells + '<div style="font-family:monospace;font-size:10px;color:var(--muted);min-width:50px;text-align:right;padding-left:6px;">' + numK(total) + '</div></div>';
   }).join('');
 
-  $('userHeatmap').innerHTML=headHtml+`<div class="heatmap">${rowsHtml}</div>`;
-  $('userEffSub').textContent=`${userMetric==='vins'?'VINs':userMetric==='images'?'images':'live VINs'} per person · ${persons.length} active persons · click row to drill`;
+  $('userHeatmap').innerHTML=headHtml+'<div class="heatmap">'+rowsHtml+'</div>';
+  const rangeLabels={'today':'Today','yesterday':'Yesterday','last_7':'Last 7 days',
+    'this_month':'This month','last_month':'Last month','all':'All time'};
+  $('userEffSub').textContent=(rangeLabels[userRange]||userRange)+' · '+(userMetric==='vins'?'VINs':userMetric==='images'?'images':'live VINs')+' per person · '+persons.length+' active · by '+(granularity==='day'?'day':'month')+' · click row to drill';
 }
 
 // ----------------------------------------
@@ -1582,6 +1602,7 @@ function renderUserHeatmap(personMonthMap){
 const PERSON_COLORS=['#6b9eff','#4ade80','#f5c265','#c084fc','#38bdf8','#f87171','#fb923c','#a3e635','#e879f9','#67e8f9'];
 
 function renderPersonTrend(personMonthMap){
+  if(!$('cPersonTrend')) return;
   killChart('cPersonTrend');
   const sortedMk=MONTHS_ORDER.filter(mk=>mk);
   const persons=Object.keys(personMonthMap).filter(p=>p!=='(unassigned)').sort();
@@ -1772,7 +1793,6 @@ function paint(){
   renderTrend(filtered);
   renderTypeMom(filtered);
   renderUserHeatmap(k.personMonthMap);
-  renderPersonTrend(k.personMonthMap);
   renderEntTable(k.ents);
 }
 
@@ -2023,13 +2043,23 @@ $('typeTabs').addEventListener('click',e=>{
   $('typeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
   killChart('cTypeMom');renderTypeMom(window._lastFilteredRows||[]);
 });
+$('userRangeTabs').addEventListener('click',e=>{
+  const b=e.target.closest('.trend-tab');if(!b)return;
+  userRange=b.dataset.ur;
+  $('userRangeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
+  renderUserHeatmap({});
+});
+// Heatmap row click delegation
+document.addEventListener('click',e=>{
+  const row=e.target.closest('.hm-row[data-p]');
+  if(row) drillPerson(row.dataset.p);
+});
 $('userMetricTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
   userMetric=b.dataset.u;
   $('userMetricTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
   const k=aggregate(RAW_VIN.filter(passesFilters));
   renderUserHeatmap(k.personMonthMap);
-  renderPersonTrend(k.personMonthMap);
 });
 $('fStage').addEventListener('change',e=>{F.stage=e.target.value;refresh();});
 $('resetBtn').addEventListener('click',()=>{
