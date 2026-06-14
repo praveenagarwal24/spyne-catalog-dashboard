@@ -964,18 +964,19 @@ function mkDelta(curr,prev){
 // RENDER KPIs
 // ----------------------------------------
 function renderKPIs(k, months, momMonths){
-  // momMonths: aggregated WITHOUT date filter so prev month always exists for delta.
-  // months: aggregated WITH date filter (used for current period values).
-  // Latest month in the DATE-FILTERED view = what the user is looking at.
-  // Previous month for delta = always from the non-date-filtered dataset.
-  const sortedFiltered=MONTHS_ORDER.filter(mk=>months[mk]);
+  // momMonths: aggregated WITHOUT date filter — used for MOM delta only.
+  // k: the fully filtered aggregate — main values shown in cards.
   const sortedAll=MONTHS_ORDER.filter(mk=>momMonths[mk]);
-  const latestMk=sortedFiltered[sortedFiltered.length-1]||sortedAll[sortedAll.length-1]||null;
+  const latestMk=sortedAll[sortedAll.length-1]||null;
   const prevMk=latestMk?(sortedAll[sortedAll.indexOf(latestMk)-1]||null):null;
-  const cur=latestMk&&months[latestMk]?months[latestMk]:(latestMk&&momMonths[latestMk]?momMonths[latestMk]:{vins:0,images:0,ents:0,rooftops:0});
+  const cur=latestMk&&momMonths[latestMk]?momMonths[latestMk]:{vins:0,images:0,ents:0,rooftops:0};
   const prev=prevMk&&momMonths[prevMk]?momMonths[prevMk]:null;
   const prevLabel=prev?('vs '+fmtMk(prevMk)):'vs prev month';
   const curLabel=latestMk?fmtMk(latestMk):'latest';
+
+  // Determine label for card: if date filter is a single period use that, else "in view"
+  const hasDateFilter = !!(F.from || F.to);
+  const periodLabel = hasDateFilter ? (PLABELS[F.preset]||'filtered') : (curLabel);
 
   function kpiHtml(label,value,cls,delta,sub){
     let dHtml;
@@ -990,15 +991,17 @@ function renderKPIs(k, months, momMonths){
       +dHtml+'<div class="kpi-sub">'+esc(sub)+'</div></div>';
   }
 
-  // Avg images per VIN for current vs prev month
-  const curAvg  = cur.vins  ? (cur.images  / cur.vins).toFixed(1)  : null;
-  const prevAvg = prev&&prev.vins ? (prev.images / prev.vins).toFixed(1) : null;
-  const avgDelta = (curAvg!=null&&prevAvg!=null)
-    ? mkDelta(parseFloat(curAvg), parseFloat(prevAvg))
-    : {pct:null, dir:'flat'};
+  // Main values = filtered totals (respects date filter)
+  const filtVins   = k.totalVins;
+  const filtImages = k.totalImages;
+  const filtEnts   = k.totalEnts;
+  const filtRoofs  = k.totalRooftops;
+  const filtAvg    = filtVins ? (filtImages/filtVins).toFixed(1) : null;
 
   // Active persons in current filtered view
   const activePersons = Object.keys(k.personMonthMap).filter(p=>p!=='(unassigned)').length;
+
+  // MOM deltas always compare latest full month vs previous full month (unfiltered by date)
   const prevPersons = prev ? (()=>{
     let c=0;
     Object.entries(k.personMonthMap).forEach(([p,mm])=>{
@@ -1007,13 +1010,19 @@ function renderKPIs(k, months, momMonths){
     return c;
   })() : null;
 
+  const curAvg  = cur.vins  ? (cur.images  / cur.vins).toFixed(1)  : null;
+  const prevAvg = prev&&prev.vins ? (prev.images / prev.vins).toFixed(1) : null;
+  const avgDelta = (curAvg!=null&&prevAvg!=null)
+    ? mkDelta(parseFloat(curAvg), parseFloat(prevAvg))
+    : {pct:null, dir:'flat'};
+
   $('kpiGrid').innerHTML=[
-    kpiHtml('VINs · '+curLabel,           num(cur.vins),          'green',  mkDelta(cur.vins,            prev&&prev.vins),            prevLabel),
-    kpiHtml('Images · '+curLabel,         numK(cur.images),       'cyan',   mkDelta(cur.images,          prev&&prev.images),          prevLabel),
-    kpiHtml('Enterprises · '+curLabel,    num(cur.ents),          'blue',   mkDelta(cur.ents,            prev&&prev.ents),            prev?('prev: '+prev.ents+' · '+prevLabel):prevLabel),
-    kpiHtml('Rooftops · '+curLabel,       num(cur.rooftops),      'purple', mkDelta(cur.rooftops,        prev&&prev.rooftops),        prev?('prev: '+prev.rooftops+' · '+prevLabel):prevLabel),
-    kpiHtml('Avg Images / VIN',           curAvg!=null?curAvg:'—','amber',  avgDelta,                                                prevLabel),
-    kpiHtml('Active Persons',             num(activePersons),     '',       prevPersons!=null?mkDelta(activePersons,prevPersons):{pct:null,dir:'flat'}, prevPersons!=null?('prev: '+prevPersons+' · '+prevLabel):prevLabel),
+    kpiHtml('VINs · '+periodLabel,       num(filtVins),     'green',  mkDelta(cur.vins,     prev&&prev.vins),     prevLabel),
+    kpiHtml('Images · '+periodLabel,     numK(filtImages),  'cyan',   mkDelta(cur.images,   prev&&prev.images),   prevLabel),
+    kpiHtml('Enterprises · '+periodLabel,num(filtEnts),     'blue',   mkDelta(cur.ents,     prev&&prev.ents),     prev?('prev: '+prev.ents+' · '+prevLabel):prevLabel),
+    kpiHtml('Rooftops · '+periodLabel,   num(filtRoofs),    'purple', mkDelta(cur.rooftops, prev&&prev.rooftops), prev?('prev: '+prev.rooftops+' · '+prevLabel):prevLabel),
+    kpiHtml('Avg Images / VIN',          filtAvg!=null?filtAvg:'—','amber', avgDelta,        prevLabel),
+    kpiHtml('Active Persons',            num(activePersons),'',       prevPersons!=null?mkDelta(activePersons,prevPersons):{pct:null,dir:'flat'}, prevPersons!=null?('prev: '+prevPersons+' · '+prevLabel):prevLabel),
   ].join('');
 }
 function fmtMk(mk){
