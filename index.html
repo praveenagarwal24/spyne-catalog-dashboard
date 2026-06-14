@@ -749,15 +749,25 @@ async function loadAll(){
 // ----------------------------------------
 // FILTER POPULATION
 // ----------------------------------------
+function dedupeCI(arr){
+  // Keep first occurrence of each value when compared case-insensitively
+  const seen = new Map(); // lowercase -> canonical
+  arr.forEach(v => {
+    const k = v.toLowerCase().trim();
+    if(!seen.has(k)) seen.set(k, v);
+  });
+  return [...seen.values()].sort((a,b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+}
+
 function getOptionVals(field, rows){
   // Extract unique values for a filter field from a given row set
   switch(field){
-    case 'entname': return [...new Set(rows.map(r=>(r['Account Name']||'').trim()).filter(Boolean))].sort();
-    case 'rooftop': return [...new Set(rows.map(r=>(r['Team ID']||'').trim()).filter(Boolean))].sort();
-    case 'seg':     return [...new Set(rows.map(r=>r._masterSegment).filter(s=>s&&s!=='#N/A'))].sort();
-    case 'type':    return [...new Set(rows.map(r=>r['Type']).filter(Boolean))].sort();
-    case 'person':  return [...new Set(rows.map(r=>r['Person Responsible']).filter(Boolean))].sort();
-    case 'dms':     return [...new Set(rows.map(r=>(r['DMS']||'').trim()).filter(Boolean))].sort();
+    case 'entname': return dedupeCI(rows.map(r=>(r['Account Name']||'').trim()).filter(Boolean));
+    case 'rooftop': return dedupeCI(rows.map(r=>(r['Team ID']||'').trim()).filter(Boolean));
+    case 'seg':     return dedupeCI(rows.map(r=>r._masterSegment).filter(s=>s&&s!=='#N/A'));
+    case 'type':    return dedupeCI(rows.map(r=>r['Type']).filter(Boolean));
+    case 'person':  return dedupeCI(rows.map(r=>r['Person Responsible']).filter(Boolean));
+    case 'dms':     return dedupeCI(rows.map(r=>(r['DMS']||'').trim()).filter(Boolean));
     default:        return [];
   }
 }
