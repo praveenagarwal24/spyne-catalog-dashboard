@@ -911,7 +911,7 @@ function buildTrendBuckets(rows, range){
       buckets.push({
         label:d.toLocaleDateString('en-US',{month:'short',day:'numeric'}),
         key:d.toISOString().slice(0,10),
-        vins:0,images:0,ents:new Set(),_rooftops:new Set(),typeMap:{}
+        vins:0,images:0,ents:new Set(),_rooftops:new Set(),typeMap:{},personMap:{}
       });
       cur.setDate(cur.getDate()+1);
     }
@@ -926,6 +926,11 @@ function buildTrendBuckets(rows, range){
         if(r['Team ID']) b._rooftops.add(r['Team ID']);
         const t=r['Type']||'Unknown';
         b.typeMap[t]=(b.typeMap[t]||0)+1;
+        const p=r['Person Responsible']||'(unassigned)';
+        if(r['Team ID']){
+          if(!b.personMap[p]) b.personMap[p]=new Set();
+          b.personMap[p].add(r['Team ID']);
+        }
       }
     }
   } else {
@@ -936,7 +941,7 @@ function buildTrendBuckets(rows, range){
       const sameYear=cur.getFullYear()===now.getFullYear();
       buckets.push({
         label:cur.toLocaleDateString('en-US',sameYear?{month:'short'}:{month:'short',year:'2-digit'}),
-        key:mk, vins:0, images:0, ents:new Set(), _rooftops:new Set(), typeMap:{}
+        key:mk, vins:0, images:0, ents:new Set(), _rooftops:new Set(), typeMap:{}, personMap:{}
       });
       cur.setMonth(cur.getMonth()+1);
     }
@@ -950,11 +955,21 @@ function buildTrendBuckets(rows, range){
         if(r['Team ID']) b._rooftops.add(r['Team ID']);
         const t=r['Type']||'Unknown';
         b.typeMap[t]=(b.typeMap[t]||0)+1;
+        const p=r['Person Responsible']||'(unassigned)';
+        if(r['Team ID']){
+          if(!b.personMap[p]) b.personMap[p]=new Set();
+          b.personMap[p].add(r['Team ID']);
+        }
       }
     }
   }
-  // Convert Sets to counts
-  buckets.forEach(b=>{ b.enterprises=b.ents.size; b.rooftops=b._rooftops.size; });
+  // Convert Sets to counts, flatten personMap to rooftop counts per person
+  buckets.forEach(b=>{
+    b.enterprises=b.ents.size;
+    b.rooftops=b._rooftops.size;
+    b.personRooftops={};
+    Object.entries(b.personMap).forEach(([p,set])=>{ b.personRooftops[p]=set.size; });
+  });
   return {buckets, granularity, from, to};
 }
 
@@ -1085,17 +1100,34 @@ function renderTrend(rows){
               return base;
             },
             afterBody: items => {
-              // Only show type breakdown when VINs dataset is present in this tooltip
+              if(!items.length) return [];
+              const idx = items[0].dataIndex;
+              const bucket = buckets[idx];
+              if(!bucket) return [];
+              const lines = [];
+
+              // VIN type breakdown
               const vinItem = items.find(i=>i.dataset.label==='VINs');
-              if(!vinItem) return [];
-              const bucket = buckets[vinItem.dataIndex];
-              if(!bucket || !bucket.typeMap || !Object.keys(bucket.typeMap).length) return [];
-              const sorted = Object.entries(bucket.typeMap).sort((a,b)=>b[1]-a[1]);
-              const lines = ['', '  VIN breakdown by type:'];
-              sorted.forEach(([type, count]) => {
-                const pct = bucket.vins ? ((count/bucket.vins)*100).toFixed(0) : 0;
-                lines.push('  '+type+': '+count.toLocaleString()+' ('+pct+'%)');
-              });
+              if(vinItem && bucket.typeMap && Object.keys(bucket.typeMap).length){
+                const sorted = Object.entries(bucket.typeMap).sort((a,b)=>b[1]-a[1]);
+                lines.push('', '  VIN breakdown by type:');
+                sorted.forEach(([type, count]) => {
+                  const pct = bucket.vins ? ((count/bucket.vins)*100).toFixed(0) : 0;
+                  lines.push('  '+type+': '+count.toLocaleString()+' ('+pct+'%)');
+                });
+              }
+
+              // Rooftops per person breakdown
+              const roofItem = items.find(i=>i.dataset.label==='Rooftops');
+              if(roofItem && bucket.personRooftops && Object.keys(bucket.personRooftops).length){
+                const sorted = Object.entries(bucket.personRooftops).sort((a,b)=>b[1]-a[1]);
+                lines.push('', '  Rooftops by person:');
+                sorted.forEach(([person, count]) => {
+                  const pct = bucket.rooftops ? ((count/bucket.rooftops)*100).toFixed(0) : 0;
+                  lines.push('  '+person+': '+count+' rooftop'+(count!==1?'s':'')+' ('+pct+'%)');
+                });
+              }
+
               return lines;
             }
           }
