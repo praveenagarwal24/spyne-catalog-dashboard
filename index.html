@@ -544,56 +544,57 @@ tr:hover td{background:var(--bg);}
 
 
   <!-- ── ROW 5: DMS Analytics ── -->
-  <div class="section-label" style="margin-top:8px;">DMS Analytics</div>
+  <div class="section-label" style="margin-top:8px;">DMS · Automation Insights</div>
   <div class="panel-grid">
-    <!-- DMS VIN trend -->
-    <div class="panel p-full">
-      <div class="panel-header">
-        <div class="panel-title-wrap">
-          <h3>DMS · VIN trend</h3>
-          <div class="panel-sub" id="dmsTrendSub">VINs per DMS over time · click legend to filter</div>
-        </div>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-          <div class="trend-tabs" id="dmsRangeTabs">
-            <button class="trend-tab" data-dr="today">Today</button>
-            <button class="trend-tab" data-dr="yesterday">Yesterday</button>
-            <button class="trend-tab" data-dr="last_7">Last 7d</button>
-            <button class="trend-tab" data-dr="this_month">This month</button>
-            <button class="trend-tab" data-dr="last_month">Last month</button>
-            <button class="trend-tab sel" data-dr="all">All time</button>
-          </div>
-          <div class="trend-tabs" id="dmsChartTypeTabs">
-            <button class="trend-tab sel" data-dct="bar">Bar</button>
-            <button class="trend-tab" data-dct="line">Curve</button>
-          </div>
-        </div>
-      </div>
-      <div class="chart-wrap tall"><canvas id="cDmsTrend"></canvas></div>
-      <div id="dmsLegend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;justify-content:center;"></div>
-    </div>
-  </div>
 
-  <div class="panel-grid">
-    <!-- DMS type breakdown (stacked) -->
+    <!-- DMS Automation rate (the key insight: % non-Live = automated) -->
     <div class="panel p-half">
       <div class="panel-header">
         <div class="panel-title-wrap">
-          <h3>DMS · Type breakdown</h3>
-          <div class="panel-sub">Live vs Console Upload vs Console Download per DMS</div>
+          <h3>Automation rate by DMS</h3>
+          <div class="panel-sub">% of VINs that are NOT live (automated) · goal: 100%</div>
         </div>
       </div>
-      <div class="chart-wrap"><canvas id="cDmsType"></canvas></div>
+      <div class="chart-wrap tall"><canvas id="cDmsAuto"></canvas></div>
+    </div>
+
+    <!-- DMS VIN volume ranked + automation split -->
+    <div class="panel p-half">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>DMS · VIN volume &amp; flow split</h3>
+          <div class="panel-sub" id="dmsVolSub">Automated vs Live per DMS · total VINs</div>
+        </div>
+        <div class="trend-tabs" id="dmsRangeTabs">
+          <button class="trend-tab" data-dr="this_month">This month</button>
+          <button class="trend-tab" data-dr="last_month">Last month</button>
+          <button class="trend-tab sel" data-dr="all">All time</button>
+        </div>
+      </div>
+      <div class="chart-wrap tall"><canvas id="cDmsVol"></canvas></div>
+    </div>
+
+    <!-- Automation trend MOM: is automation improving? -->
+    <div class="panel p-full">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>Automation trend MOM</h3>
+          <div class="panel-sub" id="dmsAutoTrendSub">% automated VINs per month · reducing manual work over time</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="cDmsAutoTrend"></canvas></div>
+      <div id="dmsAutoTrendLegend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;justify-content:center;"></div>
     </div>
 
     <!-- DMS summary table -->
-    <div class="panel p-half" style="padding:0;">
+    <div class="panel p-full" style="padding:0;">
       <div class="panel-header" style="padding:14px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:0;">
-        <div class="panel-title-wrap"><h3>DMS summary</h3><div class="panel-sub" id="dmsTableSub">VINs · images · enterprises per DMS</div></div>
+        <div class="panel-title-wrap"><h3>DMS automation scorecard</h3><div class="panel-sub" id="dmsTableSub">ranked by automation rate · click row to drill</div></div>
       </div>
-      <div class="table-scroll" style="max-height:320px;">
+      <div class="table-scroll" style="max-height:300px;">
         <table>
           <thead id="dmsTHead"></thead>
-          <tbody id="dmsTBody"><tr><td colspan="6" class="empty" style="padding:40px;text-align:center;color:var(--muted)">Loading…</td></tr></tbody>
+          <tbody id="dmsTBody"><tr><td colspan="7" style="padding:30px;text-align:center;color:var(--muted)">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1900,202 +1901,226 @@ $('modalClose').addEventListener('click',()=>$('modal').classList.remove('show')
 // MAIN PAINT
 // ----------------------------------------
 // ----------------------------------------
-// DMS ANALYTICS
+// DMS ANALYTICS  (automation-focused)
 // ----------------------------------------
-const DMS_COLORS = ['#6b9eff','#4ade80','#f5c265','#c084fc','#38bdf8','#f87171','#fb923c','#a3e635','#22d3ee','#818cf8','#fbbf24'];
+// Live = manual (person on lot). Everything else = automated (Console Upload/Download, DMS Download).
+function isDmsAutomated(type){ return type && type !== 'Live'; }
 
 function renderDmsAnalytics(){
-  if(!$('cDmsTrend')) return;
+  // Aggregate from filtered rows
   const rows = window._lastFilteredRows||[];
   if(!rows.length) return;
-
-  // Aggregate DMS data
-  const dmsMap = {}; // dms -> {vins, images, ents:Set, typeMap:{}}
-  for(const r of rows){
-    const dms = (r['DMS']||'(No DMS)').trim();
-    const entId = (r['Enterprise ID']||'').trim();
-    if(!dmsMap[dms]) dmsMap[dms] = {vins:0, images:0, ents:new Set(), typeMap:{}};
-    dmsMap[dms].vins++;
-    dmsMap[dms].images += parseInt(r['Image Count'])||0;
-    if(entId) dmsMap[dms].ents.add(entId);
-    const t = r['Type']||'Unknown';
-    dmsMap[dms].typeMap[t] = (dmsMap[dms].typeMap[t]||0)+1;
-  }
-  const dmsList = Object.entries(dmsMap).sort((a,b)=>b[1].vins-a[1].vins).map(([k,v])=>({
-    name:k, vins:v.vins, images:v.images, ents:v.ents.size, typeMap:v.typeMap
-  }));
-
   const PAL = getPal();
 
-  // ── Trend chart (DMS per period) ──
-  killChart('cDmsTrend');
-  const {buckets, granularity} = buildTrendBuckets(rows, dmsRange);
-  if(buckets.length){
-    const dmsNames = dmsList.map(d=>d.name);
-    // Per-DMS per-bucket counts
-    const dmsBuckets = {}; // dms -> array
-    for(const r of rows){
-      const dms=(r['DMS']||'(No DMS)').trim();
-      let bKey=null;
-      if(granularity==='day'&&r._date) bKey=r._date.toISOString().slice(0,10);
-      else if(granularity==='month'&&r._month) bKey=r._month;
-      if(!bKey) continue;
-      const b=buckets.find(bk=>bk.key===bKey);
-      if(!b) continue;
-      if(!dmsBuckets[dms]) dmsBuckets[dms]={};
-      dmsBuckets[dms][bKey]=(dmsBuckets[dms][bKey]||0)+1;
-    }
+  // Per-DMS totals
+  const dmsMap = {};
+  for(const r of rows){
+    const dms = (r['DMS']||'(No DMS)').trim();
+    const type = r['Type']||'Unknown';
+    if(!dmsMap[dms]) dmsMap[dms]={vins:0,auto:0,live:0,ents:new Set(),images:0,typeMap:{}};
+    dmsMap[dms].vins++;
+    dmsMap[dms].images+=parseInt(r['Image Count'])||0;
+    dmsMap[dms].ents.add(r['Enterprise ID']||'');
+    if(isDmsAutomated(type)) dmsMap[dms].auto++; else dmsMap[dms].live++;
+    dmsMap[dms].typeMap[type]=(dmsMap[dms].typeMap[type]||0)+1;
+  }
+  // Sort by VINs desc, filter out blanks
+  const dmsList = Object.entries(dmsMap)
+    .filter(([k])=>k&&k!=='(No DMS)')
+    .sort((a,b)=>b[1].vins-a[1].vins)
+    .map(([k,v])=>({name:k,vins:v.vins,auto:v.auto,live:v.live,images:v.images,
+      ents:v.ents.size,typeMap:v.typeMap,autoRate:v.vins?+(v.auto/v.vins*100).toFixed(1):0}));
 
-    const isLine = dmsChartMode==='line';
-    const ptBorder=isDark?PAL.ink:'#fff';
-    const datasets = dmsNames.map((d,i)=>{
-      const col=DMS_COLORS[i%DMS_COLORS.length];
-      const data=buckets.map(b=>(dmsBuckets[d]&&dmsBuckets[d][b.key])||0);
-      const hidden=dmsHidden.has(d);
-      return{
-        label:d, data, hidden,
-        backgroundColor: isLine?'transparent':hexToRgba(col,hidden?.2:.78),
-        borderColor:col, borderWidth:isLine?2:1,
-        borderRadius:isLine?0:4, maxBarThickness:20,
-        tension:0.35, pointRadius:isLine?3:0, pointHoverRadius:isLine?6:0,
-        pointBackgroundColor:col, pointBorderColor:ptBorder,
-        fill:false, spanGaps:false,
-        datalabels:{
-          display:!hidden, anchor:'end', align:isLine?'top':'end', clamp:true,
-          color:PAL.muted, font:{family:"'JetBrains Mono',monospace",size:9,weight:'600'},
-          formatter:v=>v>0?numK(v):''
-        }
-      };
-    });
+  const noDmsList = dmsMap['(No DMS)'];
+  const dmsNames = dmsList.map(d=>d.name);
 
-    charts.cDmsTrend=new Chart($('cDmsTrend'),{
-      type:isLine?'line':'bar', plugins:[ChartDataLabels],
-      data:{labels:buckets.map(b=>b.label), datasets},
+  // ── 1. Automation rate bar chart (horizontal) ──
+  killChart('cDmsAuto');
+  if($('cDmsAuto')&&dmsList.length){
+    const autoRates = dmsList.map(d=>d.autoRate);
+    const barColors = dmsList.map(d=>
+      d.autoRate>=80 ? hexToRgba(PAL.green,.8) :
+      d.autoRate>=50 ? hexToRgba(PAL.amber,.8) :
+                       hexToRgba(PAL.red,.8)
+    );
+    charts.cDmsAuto = new Chart($('cDmsAuto'),{
+      type:'bar', plugins:[ChartDataLabels],
+      data:{
+        labels:dmsNames,
+        datasets:[
+          {label:'Automation %',data:autoRates,backgroundColor:barColors,borderColor:barColors.map(c=>c.replace(',.8)',',1)')),borderWidth:1,borderRadius:4,maxBarThickness:28,
+            datalabels:{anchor:'end',align:'end',clamp:true,color:PAL.muted,font:{family:"'JetBrains Mono',monospace",size:10,weight:'700'},formatter:v=>v+'%'}},
+          {label:'Target (100%)',data:dmsNames.map(()=>100),backgroundColor:'transparent',borderColor:hexToRgba(PAL.muted,.25),borderWidth:1,borderDash:[4,4],type:'line',pointRadius:0,datalabels:{display:false}},
+        ]
+      },
       options:{
-        responsive:true,maintainAspectRatio:false,
-        interaction:{mode:'index',intersect:false},
-        layout:{padding:{top:24,left:4,right:4}},
+        indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        layout:{padding:{right:50,top:4}},
         plugins:{
           legend:{display:false},
-          tooltip:{
-            backgroundColor:isDark?'#1c1c1f':'#fff',
-            titleColor:isDark?'#f0efe9':'#0b0b0c',
-            bodyColor:isDark?'#b0b0b8':'#404045',
-            borderColor:isDark?'#2a2a2f':'#e8e6df',borderWidth:1,
-            padding:{top:10,bottom:10,left:12,right:12},
-            displayColors:true,boxPadding:5,cornerRadius:8,
-            filter:item=>!datasets[item.datasetIndex].hidden,
-            callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toLocaleString()}
-          },
+          tooltip:{backgroundColor:isDark?'#1c1c1f':'#fff',titleColor:isDark?'#f0efe9':'#0b0b0c',bodyColor:isDark?'#b0b0b8':'#404045',borderColor:isDark?'#2a2a2f':'#e8e6df',borderWidth:1,padding:10,cornerRadius:8,
+            callbacks:{label:ctx=>{
+              const d=dmsList[ctx.dataIndex];
+              return ctx.dataset.label==='Target (100%)'?'':
+                `Automation: ${d.autoRate}% (${d.auto.toLocaleString()} automated, ${d.live.toLocaleString()} live)`;
+            }}},
           datalabels:{display:true}
         },
         scales:{
-          x:{grid:{display:false},ticks:{font:{size:10},color:PAL.muted,maxRotation:granularity==='day'?30:0,autoSkip:true,maxTicksLimit:granularity==='day'?31:13}},
-          y:{grid:{color:PAL.line,drawBorder:false},beginAtZero:true,ticks:{font:{size:10},color:PAL.muted,precision:0,padding:6,callback:v=>numK(v)}}
+          x:{min:0,max:105,grid:{color:PAL.line,drawBorder:false},ticks:{font:{size:10},color:PAL.muted,callback:v=>v+'%'}},
+          y:{grid:{display:false},ticks:{font:{size:11},color:PAL.muted}}
         }
       }
     });
-
-    // Clickable DMS legend
-    const leg=$('dmsLegend');
-    if(leg){
-      leg.innerHTML=dmsNames.map((d,i)=>{
-        const col=DMS_COLORS[i%DMS_COLORS.length];
-        const hidden=dmsHidden.has(d);
-        return'<div class="type-legend-chip '+(hidden?'inactive':'active')+'" data-dms="'+esc(d)+'" style="color:'+col+';border-color:'+(hidden?'var(--line)':col)+'">'
-          +'<span class="tl-dot" style="background:'+col+'"></span>'+esc(d)+'</div>';
-      }).join('');
-      leg.querySelectorAll('.type-legend-chip').forEach(chip=>{
-        chip.addEventListener('click',()=>{
-          const d=chip.dataset.dms;
-          const hidden=dmsHidden.has(d);
-          if(!hidden&&dmsNames.filter(x=>!dmsHidden.has(x)).length<=1) return;
-          if(hidden) dmsHidden.delete(d); else dmsHidden.add(d);
-          renderDmsAnalytics();
-        });
-      });
-    }
-
-    const rangeLabels={'today':'Today','yesterday':'Yesterday','last_7':'Last 7 days',
-      'this_month':'This month','last_month':'Last month','all':'All time'};
-    if($('dmsTrendSub')) $('dmsTrendSub').textContent=(rangeLabels[dmsRange]||dmsRange)+' · by '+(granularity==='day'?'day':'month')+' · '+(isLine?'curves':'grouped bars');
   }
 
-  // ── Type breakdown horizontal stacked bar ──
-  killChart('cDmsType');
-  if($('cDmsType')&&dmsList.length){
-    const knownTypes=['DMS Download','Console Upload','Console Download','Live','No Data Available'];
-    const typeColors={
-      'Live':PAL.green,'Console Upload':PAL.accent,'Console Download':PAL.cyan,
-      'DMS Download':PAL.amber,'No Data Available':PAL.muted
-    };
-    const allTypeSet=new Set();
-    dmsList.forEach(d=>Object.keys(d.typeMap).forEach(t=>allTypeSet.add(t)));
-    const typeList=[...knownTypes.filter(t=>allTypeSet.has(t)),
-                    ...[...allTypeSet].filter(t=>!knownTypes.includes(t))];
-
-    const dmsLabels=dmsList.map(d=>d.name);
-    const datasets=typeList.map(t=>({
-      label:t,
-      data:dmsList.map(d=>d.typeMap[t]||0),
-      backgroundColor:hexToRgba(typeColors[t]||PAL.red,.8),
-      borderColor:typeColors[t]||PAL.red,
-      borderWidth:0, borderRadius:0,
-      datalabels:{
-        display:true, anchor:'center', align:'center', clamp:true,
-        color:'#fff', font:{family:"'JetBrains Mono',monospace",size:9,weight:'600'},
-        formatter:v=>v>0?numK(v):''
-      }
-    }));
-
-    charts.cDmsType=new Chart($('cDmsType'),{
+  // ── 2. VIN volume stacked bar (Automated vs Live) ──
+  killChart('cDmsVol');
+  if($('cDmsVol')&&dmsList.length){
+    charts.cDmsVol = new Chart($('cDmsVol'),{
       type:'bar', plugins:[ChartDataLabels],
-      data:{labels:dmsLabels, datasets},
+      data:{
+        labels:dmsNames,
+        datasets:[
+          {label:'Automated',data:dmsList.map(d=>d.auto),backgroundColor:hexToRgba(PAL.green,.8),borderColor:PAL.green,borderWidth:0,borderRadius:0,maxBarThickness:32,
+            datalabels:{anchor:'center',align:'center',color:'#fff',font:{family:"'JetBrains Mono',monospace",size:9,weight:'600'},formatter:v=>v>10?numK(v):''}},
+          {label:'Live (Manual)',data:dmsList.map(d=>d.live),backgroundColor:hexToRgba(PAL.amber,.8),borderColor:PAL.amber,borderWidth:0,borderRadius:0,maxBarThickness:32,
+            datalabels:{anchor:'center',align:'center',color:'#fff',font:{family:"'JetBrains Mono',monospace",size:9,weight:'600'},formatter:v=>v>10?numK(v):''}},
+        ]
+      },
       options:{
-        responsive:true,maintainAspectRatio:false, indexAxis:'y',
+        indexAxis:'y', responsive:true, maintainAspectRatio:false,
         interaction:{mode:'index',intersect:false},
-        layout:{padding:{right:16}},
+        layout:{padding:{right:12,top:4}},
         plugins:{
           legend:{display:true,position:'bottom',labels:{font:{size:11},color:PAL.muted,boxWidth:12,padding:14}},
-          tooltip:{
-            backgroundColor:isDark?'#1c1c1f':'#fff',
-            titleColor:isDark?'#f0efe9':'#0b0b0c',
-            bodyColor:isDark?'#b0b0b8':'#404045',
-            borderColor:isDark?'#2a2a2f':'#e8e6df',borderWidth:1,
-            padding:10,displayColors:true,boxPadding:4,cornerRadius:8,
-            callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.x.toLocaleString()}
-          },
+          tooltip:{backgroundColor:isDark?'#1c1c1f':'#fff',titleColor:isDark?'#f0efe9':'#0b0b0c',bodyColor:isDark?'#b0b0b8':'#404045',borderColor:isDark?'#2a2a2f':'#e8e6df',borderWidth:1,padding:10,cornerRadius:8,
+            callbacks:{
+              label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.x.toLocaleString()}`,
+              afterBody:items=>{const d=dmsList[items[0].dataIndex];return[`Total: ${d.vins.toLocaleString()} VINs`,`Automation: ${d.autoRate}%`];}
+            }},
           datalabels:{display:true}
         },
         scales:{
-          x:{stacked:true,grid:{color:PAL.line,drawBorder:false},beginAtZero:true,
-             ticks:{font:{size:10},color:PAL.muted,callback:v=>numK(v)}},
+          x:{stacked:true,grid:{color:PAL.line,drawBorder:false},beginAtZero:true,ticks:{font:{size:10},color:PAL.muted,callback:v=>numK(v)}},
           y:{stacked:true,grid:{display:false},ticks:{font:{size:11},color:PAL.muted}}
         }
       }
     });
+    if($('dmsVolSub')) $('dmsVolSub').textContent='Green=automated · Amber=live (manual) · sorted by total VINs';
   }
 
-  // ── DMS summary table ──
+  // ── 3. Automation trend MOM (% automated per month, overall + top 3 DMS) ──
+  killChart('cDmsAutoTrend');
+  if($('cDmsAutoTrend')){
+    const allRows = window._lastFilteredRows||[];
+    const momBuckets = {};
+    for(const r of allRows){
+      if(!r._month) continue;
+      const dms=(r['DMS']||'').trim()||'(No DMS)';
+      const mk=r._month;
+      if(!momBuckets[mk]) momBuckets[mk]={total:0,auto:0};
+      momBuckets[mk].total++;
+      if(isDmsAutomated(r['Type'])) momBuckets[mk].auto++;
+    }
+    const sortedMk=MONTHS_ORDER.filter(mk=>momBuckets[mk]);
+    if(sortedMk.length){
+      const labels=mkMonthLabels(sortedMk);
+      const overallRate=sortedMk.map(mk=>momBuckets[mk].total?+(momBuckets[mk].auto/momBuckets[mk].total*100).toFixed(1):0);
+      const ptBorder=isDark?PAL.ink:'#fff';
+
+      // Top 3 DMS by volume for individual lines
+      const top3=dmsList.slice(0,3);
+      const top3Mon={};
+      for(const r of allRows){
+        if(!r._month) continue;
+        const dms=(r['DMS']||'').trim();
+        if(!top3.find(d=>d.name===dms)) continue;
+        const mk=r._month;
+        if(!top3Mon[dms]) top3Mon[dms]={};
+        if(!top3Mon[dms][mk]) top3Mon[dms][mk]={total:0,auto:0};
+        top3Mon[dms][mk].total++;
+        if(isDmsAutomated(r['Type'])) top3Mon[dms][mk].auto++;
+      }
+
+      const ctx=$('cDmsAutoTrend').getContext('2d');
+      const g=ctx.createLinearGradient(0,0,0,200);
+      g.addColorStop(0,hexToRgba(PAL.green,.25));g.addColorStop(1,hexToRgba(PAL.green,0));
+
+      const datasets=[{
+        label:'Overall automation %',
+        data:overallRate,
+        borderColor:PAL.green,backgroundColor:g,fill:true,
+        borderWidth:2.5,tension:0.35,pointRadius:4,pointHoverRadius:7,
+        pointBackgroundColor:PAL.green,pointBorderColor:ptBorder,
+        datalabels:{anchor:'end',align:'top',clamp:true,color:PAL.green,
+          font:{family:"'JetBrains Mono',monospace",size:10,weight:'700'},
+          formatter:v=>v+'%'}
+      },...top3.map((d,i)=>{
+        const col=DMS_COLORS[i%DMS_COLORS.length];
+        const data=sortedMk.map(mk=>top3Mon[d.name]&&top3Mon[d.name][mk]?
+          +(top3Mon[d.name][mk].auto/top3Mon[d.name][mk].total*100).toFixed(1):null);
+        return{label:d.name,data,borderColor:col,backgroundColor:'transparent',
+          fill:false,borderWidth:1.5,tension:0.35,pointRadius:2.5,pointHoverRadius:5,
+          pointBackgroundColor:col,pointBorderColor:ptBorder,spanGaps:false,
+          datalabels:{display:false}};
+      })];
+
+      charts.cDmsAutoTrend=new Chart($('cDmsAutoTrend'),{
+        type:'line',plugins:[ChartDataLabels],
+        data:{labels,datasets},
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          interaction:{mode:'index',intersect:false},
+          layout:{padding:{top:20,right:8}},
+          plugins:{
+            legend:{display:false},
+            tooltip:{backgroundColor:isDark?'#1c1c1f':'#fff',titleColor:isDark?'#f0efe9':'#0b0b0c',bodyColor:isDark?'#b0b0b8':'#404045',borderColor:isDark?'#2a2a2f':'#e8e6df',borderWidth:1,padding:10,cornerRadius:8,
+              callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y+'%'}},
+            datalabels:{display:true}
+          },
+          scales:{
+            x:{grid:{display:false},ticks:{font:{size:11},color:PAL.muted,autoSkip:true,maxRotation:0}},
+            y:{min:0,max:105,grid:{color:PAL.line,drawBorder:false},
+              ticks:{font:{size:11},color:PAL.muted,callback:v=>v+'%'}}
+          }
+        }
+      });
+
+      // Legend
+      const leg=$('dmsAutoTrendLegend');
+      if(leg) leg.innerHTML=[{name:'Overall %',col:PAL.green},...top3.map((d,i)=>({name:d.name,col:DMS_COLORS[i%DMS_COLORS.length]}))].map(x=>
+        '<div class="trend-legend-item"><span class="ldot" style="background:'+x.col+'"></span><span>'+esc(x.name)+'</span></div>'
+      ).join('');
+      if($('dmsAutoTrendSub')) $('dmsAutoTrendSub').textContent='Overall + top 3 DMS by volume · higher = less manual work';
+    }
+  }
+
+  // ── 4. Scorecard table (sorted by automation rate desc) ──
   if($('dmsTHead')&&$('dmsTBody')){
-    const cols=['DMS','Enterprises','VINs','Images','Live','Console Upload','Console Download','DMS Download'];
-    $('dmsTHead').innerHTML='<tr>'+cols.map(c=>'<th class="'+(c!=='DMS'?'num':'')+'">'+(c)+'</th>').join('')+'</tr>';
-    $('dmsTBody').innerHTML=dmsList.map(function(d){
-        const live=d.typeMap['Live']||0, cu=d.typeMap['Console Upload']||0;
-        const cd=d.typeMap['Console Download']||0, dd=d.typeMap['DMS Download']||0;
-        const g='var(--green)',a='var(--accent)',cy='var(--cyan)',am='var(--amber)';
-        return ['<tr>',
-          '<td><b>'+esc(d.name)+'</b></td>',
-          '<td class="td-num">'+num(d.ents)+'</td>',
-          '<td class="td-num mono">'+num(d.vins)+'</td>',
-          '<td class="td-num mono">'+numK(d.images)+'</td>',
-          '<td class="td-num" style="color:'+g+'">'+num(live)+'</td>',
-          '<td class="td-num" style="color:'+a+'">'+num(cu)+'</td>',
-          '<td class="td-num" style="color:'+cy+'">'+num(cd)+'</td>',
-          '<td class="td-num" style="color:'+am+'">'+num(dd)+'</td>',
-          '</tr>'].join('');
-      }).join('');
-    $('dmsTableSub').textContent=dmsList.length+' DMS systems · click bar chart to explore';
+    const sorted=[...dmsList].sort((a,b)=>b.autoRate-a.autoRate);
+    $('dmsTHead').innerHTML='<tr><th>DMS</th><th class="num">Enterprises</th><th class="num">Total VINs</th><th class="num">Automated</th><th class="num">Live (Manual)</th><th class="num">Auto Rate</th><th class="num">Avg Imgs/VIN</th></tr>';
+    $('dmsTBody').innerHTML=sorted.map(d=>{
+      const rateCls=d.autoRate>=80?'var(--green)':d.autoRate>=50?'var(--amber)':'var(--red)';
+      const avg=d.vins?+(d.images/d.vins).toFixed(1):0;
+      const barW=d.autoRate;
+      const rateCell=(function(){
+        const bar='<div style="flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden;">'
+          +'<div style="width:'+barW+'%;height:100%;background:'+rateCls+';border-radius:3px;"></div></div>';
+        const lbl='<span class="mono" style="font-size:11px;font-weight:700;color:'+rateCls+'">'+d.autoRate+'%</span>';
+        return '<div style="display:flex;align-items:center;gap:8px;">'+bar+lbl+'</div>';
+      })();      const g='var(--green)',am='var(--amber)';
+      return'<tr>'
+        +'<td><b>'+esc(d.name)+'</b></td>'
+        +'<td class="td-num">'+num(d.ents)+'</td>'
+        +'<td class="td-num mono">'+num(d.vins)+'</td>'
+        +'<td class="td-num" style="color:'+g+'">'+num(d.auto)+'</td>'
+        +'<td class="td-num" style="color:'+am+'">'+num(d.live)+'</td>'
+        +'<td style="min-width:140px;padding-right:20px;">'+rateCell+'</td>'
+        +'<td class="td-num mono">'+avg+'</td>'
+        +'</tr>';
+    }).join('');
+    if($('dmsTableSub')) $('dmsTableSub').textContent='Sorted by automation rate · '+sorted.length+' DMS systems · green ≥80% · amber ≥50% · red <50%';
   }
 }
 
