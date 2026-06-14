@@ -866,13 +866,30 @@ function renderKPIs(k, months, momMonths){
       +dHtml+'<div class="kpi-sub">'+esc(sub)+'</div></div>';
   }
 
+  // Avg images per VIN for current vs prev month
+  const curAvg  = cur.vins  ? (cur.images  / cur.vins).toFixed(1)  : null;
+  const prevAvg = prev&&prev.vins ? (prev.images / prev.vins).toFixed(1) : null;
+  const avgDelta = (curAvg!=null&&prevAvg!=null)
+    ? mkDelta(parseFloat(curAvg), parseFloat(prevAvg))
+    : {pct:null, dir:'flat'};
+
+  // Active persons in current filtered view
+  const activePersons = Object.keys(k.personMonthMap).filter(p=>p!=='(unassigned)').length;
+  const prevPersons = prev ? (()=>{
+    let c=0;
+    Object.entries(k.personMonthMap).forEach(([p,mm])=>{
+      if(p!=='(unassigned)'&&prevMk&&mm[prevMk]&&mm[prevMk].vins>0) c++;
+    });
+    return c;
+  })() : null;
+
   $('kpiGrid').innerHTML=[
-    kpiHtml('VINs · '+curLabel,           num(cur.vins),        'green',  mkDelta(cur.vins,     prev&&prev.vins),     prevLabel),
-    kpiHtml('Images · '+curLabel,         numK(cur.images),     'cyan',   mkDelta(cur.images,   prev&&prev.images),   prevLabel),
-    kpiHtml('Enterprises · '+curLabel,    num(cur.ents),        'blue',   mkDelta(cur.ents,     prev&&prev.ents),     prev?('prev: '+prev.ents+' · '+prevLabel):prevLabel),
-    kpiHtml('Rooftops · '+curLabel,       num(cur.rooftops),    'purple', mkDelta(cur.rooftops, prev&&prev.rooftops), prev?('prev: '+prev.rooftops+' · '+prevLabel):prevLabel),
-    kpiHtml('Total VINs in view',         num(k.totalVins),     '',       mkDelta(cur.vins,     prev&&prev.vins),     prevLabel),
-    kpiHtml('Total Images in view',       numK(k.totalImages),  'amber',  mkDelta(cur.images,   prev&&prev.images),   prevLabel),
+    kpiHtml('VINs · '+curLabel,           num(cur.vins),          'green',  mkDelta(cur.vins,            prev&&prev.vins),            prevLabel),
+    kpiHtml('Images · '+curLabel,         numK(cur.images),       'cyan',   mkDelta(cur.images,          prev&&prev.images),          prevLabel),
+    kpiHtml('Enterprises · '+curLabel,    num(cur.ents),          'blue',   mkDelta(cur.ents,            prev&&prev.ents),            prev?('prev: '+prev.ents+' · '+prevLabel):prevLabel),
+    kpiHtml('Rooftops · '+curLabel,       num(cur.rooftops),      'purple', mkDelta(cur.rooftops,        prev&&prev.rooftops),        prev?('prev: '+prev.rooftops+' · '+prevLabel):prevLabel),
+    kpiHtml('Avg Images / VIN',           curAvg!=null?curAvg:'—','amber',  avgDelta,                                                prevLabel),
+    kpiHtml('Active Persons',             num(activePersons),     '',       prevPersons!=null?mkDelta(activePersons,prevPersons):{pct:null,dir:'flat'}, prevPersons!=null?('prev: '+prevPersons+' · '+prevLabel):prevLabel),
   ].join('');
 }
 function fmtMk(mk){
