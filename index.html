@@ -543,6 +543,62 @@ tr:hover td{background:var(--bg);}
   </div>
 
 
+  <!-- ── ROW 5: DMS Analytics ── -->
+  <div class="section-label" style="margin-top:8px;">DMS Analytics</div>
+  <div class="panel-grid">
+    <!-- DMS VIN trend -->
+    <div class="panel p-full">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>DMS · VIN trend</h3>
+          <div class="panel-sub" id="dmsTrendSub">VINs per DMS over time · click legend to filter</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div class="trend-tabs" id="dmsRangeTabs">
+            <button class="trend-tab" data-dr="today">Today</button>
+            <button class="trend-tab" data-dr="yesterday">Yesterday</button>
+            <button class="trend-tab" data-dr="last_7">Last 7d</button>
+            <button class="trend-tab" data-dr="this_month">This month</button>
+            <button class="trend-tab" data-dr="last_month">Last month</button>
+            <button class="trend-tab sel" data-dr="all">All time</button>
+          </div>
+          <div class="trend-tabs" id="dmsChartTypeTabs">
+            <button class="trend-tab sel" data-dct="bar">Bar</button>
+            <button class="trend-tab" data-dct="line">Curve</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-wrap tall"><canvas id="cDmsTrend"></canvas></div>
+      <div id="dmsLegend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;justify-content:center;"></div>
+    </div>
+  </div>
+
+  <div class="panel-grid">
+    <!-- DMS type breakdown (stacked) -->
+    <div class="panel p-half">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>DMS · Type breakdown</h3>
+          <div class="panel-sub">Live vs Console Upload vs Console Download per DMS</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="cDmsType"></canvas></div>
+    </div>
+
+    <!-- DMS summary table -->
+    <div class="panel p-half" style="padding:0;">
+      <div class="panel-header" style="padding:14px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:0;">
+        <div class="panel-title-wrap"><h3>DMS summary</h3><div class="panel-sub" id="dmsTableSub">VINs · images · enterprises per DMS</div></div>
+      </div>
+      <div class="table-scroll" style="max-height:320px;">
+        <table>
+          <thead id="dmsTHead"></thead>
+          <tbody id="dmsTBody"><tr><td colspan="6" class="empty" style="padding:40px;text-align:center;color:var(--muted)">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- ── ROW 6: Enterprise deep-dive table ── -->
   <div class="panel-grid">
     <div class="panel p-full" style="padding:0;">
@@ -590,8 +646,11 @@ const MONTHS_ORDER = [];
 const F = { from:null, to:null, preset:'last_30', seg:null, type:null, person:null, stage:'', entname:null, rooftop:null, dms:null };
 let trendRange = 'last_3_months'; // owns the trend chart date range independently
 let userRange = 'all';
-let userChartMode = 'bar'; // 'bar' or 'line' for user efficiency chart
-let userPersonHidden = new Set(); // hidden persons in user chart
+let userChartMode = 'bar';
+let userPersonHidden = new Set();
+let dmsRange = 'all';
+let dmsChartMode = 'bar';
+let dmsHidden = new Set();
 let trendChartType = 'line'; // 'line' or 'bar'
 // trendMetrics: Set of active metrics — vins, images, enterprises, rooftops
 let trendMetrics = new Set(['vins','images']);
@@ -1840,6 +1899,207 @@ $('modalClose').addEventListener('click',()=>$('modal').classList.remove('show')
 // ----------------------------------------
 // MAIN PAINT
 // ----------------------------------------
+// ----------------------------------------
+// DMS ANALYTICS
+// ----------------------------------------
+const DMS_COLORS = ['#6b9eff','#4ade80','#f5c265','#c084fc','#38bdf8','#f87171','#fb923c','#a3e635','#22d3ee','#818cf8','#fbbf24'];
+
+function renderDmsAnalytics(){
+  if(!$('cDmsTrend')) return;
+  const rows = window._lastFilteredRows||[];
+  if(!rows.length) return;
+
+  // Aggregate DMS data
+  const dmsMap = {}; // dms -> {vins, images, ents:Set, typeMap:{}}
+  for(const r of rows){
+    const dms = (r['DMS']||'(No DMS)').trim();
+    const entId = (r['Enterprise ID']||'').trim();
+    if(!dmsMap[dms]) dmsMap[dms] = {vins:0, images:0, ents:new Set(), typeMap:{}};
+    dmsMap[dms].vins++;
+    dmsMap[dms].images += parseInt(r['Image Count'])||0;
+    if(entId) dmsMap[dms].ents.add(entId);
+    const t = r['Type']||'Unknown';
+    dmsMap[dms].typeMap[t] = (dmsMap[dms].typeMap[t]||0)+1;
+  }
+  const dmsList = Object.entries(dmsMap).sort((a,b)=>b[1].vins-a[1].vins).map(([k,v])=>({
+    name:k, vins:v.vins, images:v.images, ents:v.ents.size, typeMap:v.typeMap
+  }));
+
+  const PAL = getPal();
+
+  // ── Trend chart (DMS per period) ──
+  killChart('cDmsTrend');
+  const {buckets, granularity} = buildTrendBuckets(rows, dmsRange);
+  if(buckets.length){
+    const dmsNames = dmsList.map(d=>d.name);
+    // Per-DMS per-bucket counts
+    const dmsBuckets = {}; // dms -> array
+    for(const r of rows){
+      const dms=(r['DMS']||'(No DMS)').trim();
+      let bKey=null;
+      if(granularity==='day'&&r._date) bKey=r._date.toISOString().slice(0,10);
+      else if(granularity==='month'&&r._month) bKey=r._month;
+      if(!bKey) continue;
+      const b=buckets.find(bk=>bk.key===bKey);
+      if(!b) continue;
+      if(!dmsBuckets[dms]) dmsBuckets[dms]={};
+      dmsBuckets[dms][bKey]=(dmsBuckets[dms][bKey]||0)+1;
+    }
+
+    const isLine = dmsChartMode==='line';
+    const ptBorder=isDark?PAL.ink:'#fff';
+    const datasets = dmsNames.map((d,i)=>{
+      const col=DMS_COLORS[i%DMS_COLORS.length];
+      const data=buckets.map(b=>(dmsBuckets[d]&&dmsBuckets[d][b.key])||0);
+      const hidden=dmsHidden.has(d);
+      return{
+        label:d, data, hidden,
+        backgroundColor: isLine?'transparent':hexToRgba(col,hidden?.2:.78),
+        borderColor:col, borderWidth:isLine?2:1,
+        borderRadius:isLine?0:4, maxBarThickness:20,
+        tension:0.35, pointRadius:isLine?3:0, pointHoverRadius:isLine?6:0,
+        pointBackgroundColor:col, pointBorderColor:ptBorder,
+        fill:false, spanGaps:false,
+        datalabels:{
+          display:!hidden, anchor:'end', align:isLine?'top':'end', clamp:true,
+          color:PAL.muted, font:{family:"'JetBrains Mono',monospace",size:9,weight:'600'},
+          formatter:v=>v>0?numK(v):''
+        }
+      };
+    });
+
+    charts.cDmsTrend=new Chart($('cDmsTrend'),{
+      type:isLine?'line':'bar', plugins:[ChartDataLabels],
+      data:{labels:buckets.map(b=>b.label), datasets},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        layout:{padding:{top:24,left:4,right:4}},
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:isDark?'#1c1c1f':'#fff',
+            titleColor:isDark?'#f0efe9':'#0b0b0c',
+            bodyColor:isDark?'#b0b0b8':'#404045',
+            borderColor:isDark?'#2a2a2f':'#e8e6df',borderWidth:1,
+            padding:{top:10,bottom:10,left:12,right:12},
+            displayColors:true,boxPadding:5,cornerRadius:8,
+            filter:item=>!datasets[item.datasetIndex].hidden,
+            callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toLocaleString()}
+          },
+          datalabels:{display:true}
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{font:{size:10},color:PAL.muted,maxRotation:granularity==='day'?30:0,autoSkip:true,maxTicksLimit:granularity==='day'?31:13}},
+          y:{grid:{color:PAL.line,drawBorder:false},beginAtZero:true,ticks:{font:{size:10},color:PAL.muted,precision:0,padding:6,callback:v=>numK(v)}}
+        }
+      }
+    });
+
+    // Clickable DMS legend
+    const leg=$('dmsLegend');
+    if(leg){
+      leg.innerHTML=dmsNames.map((d,i)=>{
+        const col=DMS_COLORS[i%DMS_COLORS.length];
+        const hidden=dmsHidden.has(d);
+        return'<div class="type-legend-chip '+(hidden?'inactive':'active')+'" data-dms="'+esc(d)+'" style="color:'+col+';border-color:'+(hidden?'var(--line)':col)+'">'
+          +'<span class="tl-dot" style="background:'+col+'"></span>'+esc(d)+'</div>';
+      }).join('');
+      leg.querySelectorAll('.type-legend-chip').forEach(chip=>{
+        chip.addEventListener('click',()=>{
+          const d=chip.dataset.dms;
+          const hidden=dmsHidden.has(d);
+          if(!hidden&&dmsNames.filter(x=>!dmsHidden.has(x)).length<=1) return;
+          if(hidden) dmsHidden.delete(d); else dmsHidden.add(d);
+          renderDmsAnalytics();
+        });
+      });
+    }
+
+    const rangeLabels={'today':'Today','yesterday':'Yesterday','last_7':'Last 7 days',
+      'this_month':'This month','last_month':'Last month','all':'All time'};
+    if($('dmsTrendSub')) $('dmsTrendSub').textContent=(rangeLabels[dmsRange]||dmsRange)+' · by '+(granularity==='day'?'day':'month')+' · '+(isLine?'curves':'grouped bars');
+  }
+
+  // ── Type breakdown horizontal stacked bar ──
+  killChart('cDmsType');
+  if($('cDmsType')&&dmsList.length){
+    const knownTypes=['DMS Download','Console Upload','Console Download','Live','No Data Available'];
+    const typeColors={
+      'Live':PAL.green,'Console Upload':PAL.accent,'Console Download':PAL.cyan,
+      'DMS Download':PAL.amber,'No Data Available':PAL.muted
+    };
+    const allTypeSet=new Set();
+    dmsList.forEach(d=>Object.keys(d.typeMap).forEach(t=>allTypeSet.add(t)));
+    const typeList=[...knownTypes.filter(t=>allTypeSet.has(t)),
+                    ...[...allTypeSet].filter(t=>!knownTypes.includes(t))];
+
+    const dmsLabels=dmsList.map(d=>d.name);
+    const datasets=typeList.map(t=>({
+      label:t,
+      data:dmsList.map(d=>d.typeMap[t]||0),
+      backgroundColor:hexToRgba(typeColors[t]||PAL.red,.8),
+      borderColor:typeColors[t]||PAL.red,
+      borderWidth:0, borderRadius:0,
+      datalabels:{
+        display:true, anchor:'center', align:'center', clamp:true,
+        color:'#fff', font:{family:"'JetBrains Mono',monospace",size:9,weight:'600'},
+        formatter:v=>v>0?numK(v):''
+      }
+    }));
+
+    charts.cDmsType=new Chart($('cDmsType'),{
+      type:'bar', plugins:[ChartDataLabels],
+      data:{labels:dmsLabels, datasets},
+      options:{
+        responsive:true,maintainAspectRatio:false, indexAxis:'y',
+        interaction:{mode:'index',intersect:false},
+        layout:{padding:{right:16}},
+        plugins:{
+          legend:{display:true,position:'bottom',labels:{font:{size:11},color:PAL.muted,boxWidth:12,padding:14}},
+          tooltip:{
+            backgroundColor:isDark?'#1c1c1f':'#fff',
+            titleColor:isDark?'#f0efe9':'#0b0b0c',
+            bodyColor:isDark?'#b0b0b8':'#404045',
+            borderColor:isDark?'#2a2a2f':'#e8e6df',borderWidth:1,
+            padding:10,displayColors:true,boxPadding:4,cornerRadius:8,
+            callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.x.toLocaleString()}
+          },
+          datalabels:{display:true}
+        },
+        scales:{
+          x:{stacked:true,grid:{color:PAL.line,drawBorder:false},beginAtZero:true,
+             ticks:{font:{size:10},color:PAL.muted,callback:v=>numK(v)}},
+          y:{stacked:true,grid:{display:false},ticks:{font:{size:11},color:PAL.muted}}
+        }
+      }
+    });
+  }
+
+  // ── DMS summary table ──
+  if($('dmsTHead')&&$('dmsTBody')){
+    const cols=['DMS','Enterprises','VINs','Images','Live','Console Upload','Console Download','DMS Download'];
+    $('dmsTHead').innerHTML='<tr>'+cols.map(c=>'<th class="'+(c!=='DMS'?'num':'')+'">'+(c)+'</th>').join('')+'</tr>';
+    $('dmsTBody').innerHTML=dmsList.map(function(d){
+        const live=d.typeMap['Live']||0, cu=d.typeMap['Console Upload']||0;
+        const cd=d.typeMap['Console Download']||0, dd=d.typeMap['DMS Download']||0;
+        const g='var(--green)',a='var(--accent)',cy='var(--cyan)',am='var(--amber)';
+        return ['<tr>',
+          '<td><b>'+esc(d.name)+'</b></td>',
+          '<td class="td-num">'+num(d.ents)+'</td>',
+          '<td class="td-num mono">'+num(d.vins)+'</td>',
+          '<td class="td-num mono">'+numK(d.images)+'</td>',
+          '<td class="td-num" style="color:'+g+'">'+num(live)+'</td>',
+          '<td class="td-num" style="color:'+a+'">'+num(cu)+'</td>',
+          '<td class="td-num" style="color:'+cy+'">'+num(cd)+'</td>',
+          '<td class="td-num" style="color:'+am+'">'+num(dd)+'</td>',
+          '</tr>'].join('');
+      }).join('');
+    $('dmsTableSub').textContent=dmsList.length+' DMS systems · click bar chart to explore';
+  }
+}
+
+
 function paint(){
   const filtered=RAW_VIN.filter(passesFilters);
   const k=aggregate(filtered);
@@ -1861,6 +2121,7 @@ function paint(){
   renderTrend(filtered);
   renderTypeMom(filtered);
   renderUserChart();
+  renderDmsAnalytics();
   renderEntTable(k.ents);
 }
 
@@ -2143,6 +2404,19 @@ $('resetBtn').addEventListener('click',()=>{
   ALL_MS.forEach(ms=>{F[ms.field]=null;ms.refreshTrigger();});
   populateFilters(); // restore all options to full dataset
   syncDateUI();refresh();
+});
+$('dmsRangeTabs').addEventListener('click',e=>{
+  const b=e.target.closest('.trend-tab');if(!b)return;
+  dmsRange=b.dataset.dr;
+  $('dmsRangeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
+  dmsHidden=new Set();
+  renderDmsAnalytics();
+});
+$('dmsChartTypeTabs').addEventListener('click',e=>{
+  const b=e.target.closest('.trend-tab');if(!b)return;
+  dmsChartMode=b.dataset.dct;
+  $('dmsChartTypeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
+  renderDmsAnalytics();
 });
 $('syncBtn').addEventListener('click',()=>loadAll());
 $('entSearch').addEventListener('input',()=>sortAndRenderEntTable());
