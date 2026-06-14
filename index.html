@@ -763,7 +763,7 @@ function populateFilters(){
     const def = ALL_MS_DEFS.find(d=>d.field===ms.field);
     if(def && def.searchId){
       const el = $(def.searchId);
-      if(el) el.parentElement.style.display = vals.length > 3 ? '' : 'none';
+      if(el && el.parentElement) el.parentElement.style.display = vals.length > 3 ? '' : 'none';
     }
   });
   // Set readable plural labels
@@ -807,7 +807,7 @@ function cascadeFilters(changedField){
     const def = ALL_MS_DEFS.find(d=>d.field===ms.field);
     if(def && def.searchId){
       const el = $(def.searchId);
-      if(el) el.parentElement.style.display = newVals.length > 3 ? '' : 'none';
+      if(el && el.parentElement) el.parentElement.style.display = newVals.length > 3 ? '' : 'none';
     }
   });
 }
@@ -1244,12 +1244,18 @@ function renderTrend(rows){
               if(!bucket) return [];
               const lines = [];
 
-              // VIN type breakdown
+              // VIN type breakdown — fixed display order
               const vinItem = items.find(i=>i.dataset.label==='VINs');
               if(vinItem && bucket.typeMap && Object.keys(bucket.typeMap).length){
-                const sorted = Object.entries(bucket.typeMap).sort((a,b)=>b[1]-a[1]);
+                const TYPE_ORDER = ['DMS Download','Console Upload','Console Download','DMS Upload','Live'];
+                const allTypes = Object.keys(bucket.typeMap);
+                // Ordered types first, then anything else alphabetically as "Others"
+                const ordered = TYPE_ORDER.filter(t => bucket.typeMap[t]);
+                const others  = allTypes.filter(t => !TYPE_ORDER.includes(t) && bucket.typeMap[t])
+                                        .sort((a,b)=>bucket.typeMap[b]-bucket.typeMap[a]);
                 lines.push('', '  VIN breakdown by type:');
-                sorted.forEach(([type, count]) => {
+                [...ordered, ...others].forEach(type => {
+                  const count = bucket.typeMap[type] || 0;
                   const pct = bucket.vins ? ((count/bucket.vins)*100).toFixed(0) : 0;
                   lines.push('  '+type+': '+count.toLocaleString()+' ('+pct+'%)');
                 });
@@ -1686,6 +1692,12 @@ function refresh(){
 // ----------------------------------------
 function createMS(triggerId,panelId,textId,listId,searchInputId){
   const trigger=$(triggerId),panel=$(panelId),text=$(textId),list=$(listId);
+  // Guard: if any required element is missing, return a no-op stub
+  if(!trigger||!panel||!text||!list){
+    console.warn('createMS: missing element(s) for',triggerId);
+    return {field:null,pluralLabel:'items',singularLabel:'item',onChange:null,
+      setOptions(){},setOptionsKeepSel(){},close(){},refreshTrigger(){}};
+  }
   const searchEl=searchInputId?$(searchInputId):null;
   let options=[],searchQ='';
   // sel===null means "all selected"; sel===Set means explicit selection
@@ -1815,7 +1827,11 @@ function msSetOptions(ms,field,items,allLabel){
 
 document.addEventListener('mousedown',e=>{
   ALL_MS_DEFS.forEach(def=>{
-    if(!$(def.wrapId).contains(e.target)) getMsForField(def.field).close();
+    const wrap=$(def.wrapId);
+    if(wrap && !wrap.contains(e.target)){
+      const ms=getMsForField(def.field);
+      if(ms) ms.close();
+    }
   });
 });
 
