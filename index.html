@@ -867,14 +867,12 @@ function renderKPIs(k, months, momMonths){
   }
 
   $('kpiGrid').innerHTML=[
-    kpiHtml('VINs '+curLabel,         num(cur.vins),        'green',  mkDelta(cur.vins,     prev&&prev.vins),     prevLabel),
-    kpiHtml('Images '+curLabel,       numK(cur.images),     'cyan',   mkDelta(cur.images,   prev&&prev.images),   prevLabel),
-    kpiHtml('Enterprises (MOM)',      num(cur.ents),        'blue',   mkDelta(cur.ents,     prev&&prev.ents),     prev?('prev: '+prev.ents+' ('+prevLabel+')'):prevLabel),
-    kpiHtml('Rooftops (MOM)',         num(cur.rooftops),    'purple', mkDelta(cur.rooftops, prev&&prev.rooftops), prev?('prev: '+prev.rooftops+' ('+prevLabel+')'):prevLabel),
-    kpiHtml('Total VINs (filtered)',  num(k.totalVins),     '',       mkDelta(cur.vins,     prev&&prev.vins),     prevLabel),
-    kpiHtml('Total Images (filtered)',numK(k.totalImages),  'amber',  mkDelta(cur.images,   prev&&prev.images),   prevLabel),
-    kpiHtml('Total Enterprises',      num(k.totalEnts),     'blue',   mkDelta(cur.ents,     prev&&prev.ents),     prevLabel),
-    kpiHtml('Total Rooftops',         num(k.totalRooftops), 'purple', mkDelta(cur.rooftops, prev&&prev.rooftops), prevLabel),
+    kpiHtml('VINs · '+curLabel,           num(cur.vins),        'green',  mkDelta(cur.vins,     prev&&prev.vins),     prevLabel),
+    kpiHtml('Images · '+curLabel,         numK(cur.images),     'cyan',   mkDelta(cur.images,   prev&&prev.images),   prevLabel),
+    kpiHtml('Enterprises · '+curLabel,    num(cur.ents),        'blue',   mkDelta(cur.ents,     prev&&prev.ents),     prev?('prev: '+prev.ents+' · '+prevLabel):prevLabel),
+    kpiHtml('Rooftops · '+curLabel,       num(cur.rooftops),    'purple', mkDelta(cur.rooftops, prev&&prev.rooftops), prev?('prev: '+prev.rooftops+' · '+prevLabel):prevLabel),
+    kpiHtml('Total VINs in view',         num(k.totalVins),     '',       mkDelta(cur.vins,     prev&&prev.vins),     prevLabel),
+    kpiHtml('Total Images in view',       numK(k.totalImages),  'amber',  mkDelta(cur.images,   prev&&prev.images),   prevLabel),
   ].join('');
 }
 function fmtMk(mk){
