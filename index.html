@@ -393,10 +393,18 @@ tr:hover td{background:var(--bg);}
     <div class="panel p-full">
       <div class="panel-header">
         <div class="panel-title-wrap">
-          <h3 id="trendTitle">Monthly trend</h3>
-          <div class="panel-sub" id="trendSub">VINs · Images · by month</div>
+          <h3 id="trendTitle">Trend</h3>
+          <div class="panel-sub" id="trendSub">VINs · Images · by day/month</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div class="trend-tabs" id="trendRangeTabs">
+            <button class="trend-tab" data-tr="today">Today</button>
+            <button class="trend-tab" data-tr="yesterday">Yesterday</button>
+            <button class="trend-tab" data-tr="last_7">Last 7d</button>
+            <button class="trend-tab" data-tr="this_month">This month</button>
+            <button class="trend-tab" data-tr="last_month">Last month</button>
+            <button class="trend-tab sel" data-tr="last_3_months">Last 3 months</button>
+          </div>
           <div class="trend-tabs" id="metricTabs">
             <button class="trend-tab" data-m="vins">VINs</button>
             <button class="trend-tab" data-m="images">Images</button>
@@ -536,6 +544,7 @@ const MONTHS_ORDER = [];
 
 const F = { from:null, to:null, preset:'last_30', seg:null, type:null, person:null, stage:'' };
 let trendMetric = 'both';
+let trendRange = 'last_3_months'; // owns the trend chart date range independently
 let typeChartMode = 'stacked';
 let userMetric = 'vins';
 let entSortState = { col:'totalVins', dir:'desc' };
@@ -861,16 +870,80 @@ function fmtMk(mk){
 }
 
 // ----------------------------------------
-// TREND CHART
+// TREND CHART  (day or month granularity based on range)
 // ----------------------------------------
-function renderTrend(months){
+function buildTrendBuckets(rows, range){
+  // Returns array of {label, vins, images}
+  // <=30 day ranges  -> one bucket per day
+  // month+ ranges    -> one bucket per month
+  const now=new Date(), tod=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const ago=n=>{const d=new Date(tod);d.setDate(tod.getDate()-n);return d;};
+
+  let from, to, granularity;
+  if(range==='today')         { from=new Date(tod); to=new Date(tod); granularity='day'; }
+  else if(range==='yesterday'){ from=ago(1); to=ago(1); granularity='day'; }
+  else if(range==='last_7')   { from=ago(6); to=new Date(tod); granularity='day'; }
+  else if(range==='this_month'){ from=new Date(now.getFullYear(),now.getMonth(),1); to=new Date(tod); granularity='day'; }
+  else if(range==='last_month'){ from=new Date(now.getFullYear(),now.getMonth()-1,1); to=new Date(now.getFullYear(),now.getMonth(),0); granularity='day'; }
+  else if(range==='last_3_months'){ from=new Date(now.getFullYear(),now.getMonth()-2,1); to=new Date(tod); granularity='month'; }
+  else if(range==='last_6_months'){ from=new Date(now.getFullYear(),now.getMonth()-5,1); to=new Date(tod); granularity='month'; }
+  else { from=new Date(now.getFullYear(),0,1); to=new Date(tod); granularity='month'; } // all/year
+
+  const buckets=[];
+  if(granularity==='day'){
+    const cur=new Date(from);
+    while(cur<=to){
+      const d=new Date(cur);
+      buckets.push({
+        label:d.toLocaleDateString('en-US',{month:'short',day:'numeric'}),
+        key:d.toISOString().slice(0,10),
+        vins:0,images:0,isDay:true,date:new Date(d)
+      });
+      cur.setDate(cur.getDate()+1);
+    }
+    // Fill from rows
+    for(const r of rows){
+      if(!r._date) continue;
+      const key=r._date.toISOString().slice(0,10);
+      const b=buckets.find(b=>b.key===key);
+      if(b){ b.vins++; b.images+=parseInt(r['Image Count'])||0; }
+    }
+  } else {
+    // Month granularity
+    const cur=new Date(from.getFullYear(),from.getMonth(),1);
+    const endMo=new Date(to.getFullYear(),to.getMonth(),1);
+    while(cur<=endMo){
+      const mk=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0');
+      const sameYear=cur.getFullYear()===now.getFullYear();
+      buckets.push({
+        label:cur.toLocaleDateString('en-US',sameYear?{month:'short'}:{month:'short',year:'2-digit'}),
+        key:mk, vins:0, images:0
+      });
+      cur.setMonth(cur.getMonth()+1);
+    }
+    for(const r of rows){
+      if(!r._month) continue;
+      const b=buckets.find(b=>b.key===r._month);
+      if(b){ b.vins++; b.images+=parseInt(r['Image Count'])||0; }
+    }
+  }
+  return {buckets, granularity, from, to};
+}
+
+function renderTrend(rows){
   killChart('cTrend');
-  const sortedMk=MONTHS_ORDER.filter(mk=>months[mk]);
-  if(!sortedMk.length)return;
+  if(!rows||!rows.length){
+    // No rows passed — use full filtered set (called from paint with k.months passthrough)
+    // This branch handles legacy calls with months object
+    return;
+  }
+  const {buckets, granularity} = buildTrendBuckets(rows, trendRange);
+  if(!buckets.length) return;
+
   const PAL=getPal();
-  const labels=mkMonthLabels(sortedMk);
-  const vins=sortedMk.map(mk=>months[mk].vins);
-  const images=sortedMk.map(mk=>months[mk].images);
+  const labels=buckets.map(b=>b.label);
+  const vins=buckets.map(b=>b.vins);
+  const images=buckets.map(b=>b.images);
   const ptBorder=isDark?PAL.ink:'#fff';
 
   const ctx=$('cTrend').getContext('2d');
@@ -887,20 +960,25 @@ function renderTrend(months){
 
   const datasets=[];
   if(trendMetric==='vins'||trendMetric==='both'){
-    datasets.push({label:'VINs',data:vins,borderColor:PAL.accent,backgroundColor:trendMetric==='both'?'transparent':gVin,
-      yAxisID:'y',borderWidth:2.2,tension:0.35,pointRadius:3,pointHoverRadius:6,
-      pointBackgroundColor:PAL.accent,pointBorderColor:ptBorder,pointBorderWidth:0,fill:trendMetric==='vins',
-      datalabels:dlOpts(PAL.accent,'top')});
+    datasets.push({label:'VINs',data:vins,borderColor:PAL.accent,
+      backgroundColor:trendMetric==='both'?'transparent':gVin,
+      yAxisID:'y',borderWidth:2.2,tension:0.35,
+      pointRadius:granularity==='day'?3:4,pointHoverRadius:7,
+      pointBackgroundColor:PAL.accent,pointBorderColor:ptBorder,pointBorderWidth:0,
+      fill:trendMetric==='vins',datalabels:dlOpts(PAL.accent,'top')});
   }
   if(trendMetric==='images'||trendMetric==='both'){
-    datasets.push({label:'Images',data:images,borderColor:PAL.cyan,backgroundColor:trendMetric==='both'?'transparent':gImg,
-      yAxisID:trendMetric==='both'?'y2':'y',borderWidth:2,tension:0.35,pointRadius:2.5,pointHoverRadius:5.5,
-      pointBackgroundColor:PAL.cyan,pointBorderColor:ptBorder,fill:trendMetric==='images',
-      datalabels:dlOpts(PAL.cyan,'bottom')});
+    datasets.push({label:'Images',data:images,borderColor:PAL.cyan,
+      backgroundColor:trendMetric==='both'?'transparent':gImg,
+      yAxisID:trendMetric==='both'?'y2':'y',borderWidth:2,tension:0.35,
+      pointRadius:granularity==='day'?2.5:3.5,pointHoverRadius:6,
+      pointBackgroundColor:PAL.cyan,pointBorderColor:ptBorder,
+      fill:trendMetric==='images',datalabels:dlOpts(PAL.cyan,'bottom')});
   }
 
   const scales={
-    x:{offset:true,grid:{display:false},ticks:{font:{size:11},color:PAL.muted,autoSkip:true,maxRotation:0}},
+    x:{offset:true,grid:{display:false},
+       ticks:{font:{size:11},color:PAL.muted,autoSkip:true,maxRotation:granularity==='day'?30:0,maxTicksLimit:granularity==='day'?31:13}},
     y:{position:'left',grid:{color:PAL.line,drawBorder:false},beginAtZero:true,
        ticks:{font:{size:11},color:PAL.muted,precision:0,padding:8,callback:v=>numK(v)}}
   };
@@ -919,20 +997,24 @@ function renderTrend(months){
       plugins:{legend:{display:false},
         tooltip:{backgroundColor:PAL.ink,titleColor:isDark?'#0b0b0c':'#fff',bodyColor:isDark?'#0b0b0c':'#fff',
           padding:10,displayColors:true,boxPadding:4,cornerRadius:6,
-          callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}`}},
+          callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toLocaleString()}},
         datalabels:{display:true}},
-      scales,
+      scales
     }
   });
 
   const cols={VINs:PAL.accent,Images:PAL.cyan};
   const totals={};
-  if(trendMetric!=='images')totals.VINs=vins.reduce((a,b)=>a+b,0);
-  if(trendMetric!=='vins')totals.Images=images.reduce((a,b)=>a+b,0);
+  if(trendMetric!=='images') totals.VINs=vins.reduce((a,b)=>a+b,0);
+  if(trendMetric!=='vins')   totals.Images=images.reduce((a,b)=>a+b,0);
   $('trendLegend').innerHTML=Object.entries(totals).map(([k,v])=>
-    `<div class="trend-legend-item"><span class="ldot" style="background:${cols[k]}"></span><span>${k}: </span><span class="lval">${numK(v)}</span></div>`
+    '<div class="trend-legend-item"><span class="ldot" style="background:'+cols[k]+'"></span><span>'+k+': </span><span class="lval">'+numK(v)+'</span></div>'
   ).join('');
-  $('trendSub').textContent=sortedMk.length+' months · VINs · Images · by month';
+  const rangeLabels={'today':'Today','yesterday':'Yesterday','last_7':'Last 7 days',
+    'this_month':'This month','last_month':'Last month','last_3_months':'Last 3 months',
+    'last_6_months':'Last 6 months'};
+  $('trendSub').textContent=(rangeLabels[trendRange]||trendRange)+' · by '+(granularity==='day'?'day':'month')+' · '+buckets.length+' data points';
+  $('trendTitle').textContent='Trend';
 }
 
 // ----------------------------------------
@@ -1307,11 +1389,12 @@ function paint(){
   F.from=savedFrom; F.to=savedTo;
   const kAll=aggregate(noDateFiltered);
 
-  // Store filtered months so metric tab clicks can re-render without re-aggregating
+  // Store filtered rows for trend chart tab re-renders
+  window._lastFilteredRows=filtered;
   window._lastFilteredMonths=k.months;
 
   renderKPIs(k, k.months, kAll.months);
-  renderTrend(k.months);
+  renderTrend(filtered);
   renderEntMom(k.months);
   renderTypeMom(k.months);
   renderImgPerVin(k.months);
@@ -1468,11 +1551,17 @@ $('calNext').addEventListener('click',e=>{e.stopPropagation();cal.view=new Date(
 // ----------------------------------------
 // OTHER CONTROLS
 // ----------------------------------------
+$('trendRangeTabs').addEventListener('click',e=>{
+  const b=e.target.closest('.trend-tab');if(!b)return;
+  trendRange=b.dataset.tr;
+  $('trendRangeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
+  killChart('cTrend');renderTrend(window._lastFilteredRows||[]);
+});
 $('metricTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
   trendMetric=b.dataset.m;
   $('metricTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
-  killChart('cTrend');renderTrend(window._lastFilteredMonths||{});
+  killChart('cTrend');renderTrend(window._lastFilteredRows||[]);
 });
 $('typeTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
