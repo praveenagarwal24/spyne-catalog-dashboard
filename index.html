@@ -370,6 +370,7 @@ tr:hover td{background:var(--bg);}
         <svg class="ms-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2,4 6,8 10,4"/></svg>
       </div>
       <div class="ms-panel" id="msSegPanel">
+        <div class="ms-search-wrap"><input type="text" class="ms-search" id="msSegSearch" placeholder="Search segment…"></div>
         <div class="ms-actions"><button class="ms-action" data-act="all" data-ms="seg">All</button><button class="ms-action muted" data-act="none" data-ms="seg">None</button></div>
         <div class="ms-list" id="msSegList"></div>
       </div>
@@ -383,6 +384,7 @@ tr:hover td{background:var(--bg);}
         <svg class="ms-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2,4 6,8 10,4"/></svg>
       </div>
       <div class="ms-panel" id="msTypePanel">
+        <div class="ms-search-wrap"><input type="text" class="ms-search" id="msTypeSearch" placeholder="Search type…"></div>
         <div class="ms-actions"><button class="ms-action" data-act="all" data-ms="type">All</button><button class="ms-action muted" data-act="none" data-ms="type">None</button></div>
         <div class="ms-list" id="msTypeList"></div>
       </div>
@@ -396,6 +398,7 @@ tr:hover td{background:var(--bg);}
         <svg class="ms-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2,4 6,8 10,4"/></svg>
       </div>
       <div class="ms-panel" id="msPersonPanel">
+        <div class="ms-search-wrap"><input type="text" class="ms-search" id="msPersonSearch" placeholder="Search person…"></div>
         <div class="ms-actions"><button class="ms-action" data-act="all" data-ms="person">All</button><button class="ms-action muted" data-act="none" data-ms="person">None</button></div>
         <div class="ms-list" id="msPersonList"></div>
       </div>
@@ -409,6 +412,7 @@ tr:hover td{background:var(--bg);}
         <svg class="ms-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2,4 6,8 10,4"/></svg>
       </div>
       <div class="ms-panel" id="msDmsPanel">
+        <div class="ms-search-wrap"><input type="text" class="ms-search" id="msDmsSearch" placeholder="Search DMS…"></div>
         <div class="ms-actions"><button class="ms-action" data-act="all" data-ms="dms">All</button><button class="ms-action muted" data-act="none" data-ms="dms">None</button></div>
         <div class="ms-list" id="msDmsList"></div>
       </div>
@@ -745,19 +749,91 @@ async function loadAll(){
 // ----------------------------------------
 // FILTER POPULATION
 // ----------------------------------------
+function getOptionVals(field, rows){
+  // Extract unique values for a filter field from a given row set
+  switch(field){
+    case 'entname': return [...new Set(rows.map(r=>(r['Account Name']||'').trim()).filter(Boolean))].sort();
+    case 'rooftop': return [...new Set(rows.map(r=>(r['Team ID']||'').trim()).filter(Boolean))].sort();
+    case 'seg':     return [...new Set(rows.map(r=>r._masterSegment).filter(s=>s&&s!=='#N/A'))].sort();
+    case 'type':    return [...new Set(rows.map(r=>r['Type']).filter(Boolean))].sort();
+    case 'person':  return [...new Set(rows.map(r=>r['Person Responsible']).filter(Boolean))].sort();
+    case 'dms':     return [...new Set(rows.map(r=>(r['DMS']||'').trim()).filter(Boolean))].sort();
+    default:        return [];
+  }
+}
+
+function getMsForField(field){
+  return ALL_MS.find(ms=>ms.field===field);
+}
+
+// Called once on initial load — sets options from full dataset, show/hide search based on count
 function populateFilters(){
-  const segs=[...new Set(RAW_VIN.map(r=>r._masterSegment).filter(s=>s&&s!=='#N/A'))].sort();
-  const types=[...new Set(RAW_VIN.map(r=>r['Type']).filter(Boolean))].sort();
-  const persons=[...new Set(RAW_VIN.map(r=>r['Person Responsible']).filter(Boolean))].sort();
-  const entNames=[...new Set(RAW_VIN.map(r=>(r['Account Name']||'').trim()).filter(Boolean))].sort();
-  const rooftops=[...new Set(RAW_VIN.map(r=>(r['Team ID']||'').trim()).filter(Boolean))].sort();
-  const dmsList=[...new Set(RAW_VIN.map(r=>(r['DMS']||'').trim()).filter(Boolean))].sort();
-  msSetOptions(msSeg,'seg',segs,'All segments');
-  msSetOptions(msType,'type',types,'All types');
-  msSetOptions(msPerson,'person',persons,'All persons');
-  msSetOptions(msEntName,'entname',entNames,'All enterprises');
-  msSetOptions(msRooftop,'rooftop',rooftops,'All rooftops');
-  msSetOptions(msDms,'dms',dmsList,'All DMS');
+  ALL_MS.forEach(ms=>{
+    const vals = getOptionVals(ms.field, RAW_VIN);
+    ms.setOptions(vals, vals.length+' options', vals.length+' options'); // label overridden below
+    // Show/hide search input based on count
+    const def = ALL_MS_DEFS.find(d=>d.field===ms.field);
+    if(def && def.searchId){
+      const el = $(def.searchId);
+      if(el) el.parentElement.style.display = vals.length > 3 ? '' : 'none';
+    }
+  });
+  // Set readable plural labels
+  const labels = {entname:'enterprises',rooftop:'rooftops',seg:'segments',type:'types',person:'persons',dms:'DMS'};
+  ALL_MS.forEach(ms=>{ ms.pluralLabel = labels[ms.field]||ms.field; ms.singularLabel = labels[ms.field]||ms.field; ms.refreshTrigger(); });
+}
+
+// Cascade: when one filter changes, recompute options for all OTHER filters
+// using rows that pass all filters EXCEPT the one being recalculated
+function cascadeFilters(changedField){
+  ALL_MS.forEach(ms=>{
+    if(ms.field === changedField) return; // don't touch the one that just changed
+    // Build a "partial" filter — everything except this field and date (date doesn't affect options)
+    const partialRows = RAW_VIN.filter(r=>{
+      // Check all filters except ms.field (and except date for speed)
+      for(const other of ALL_MS){
+        if(other.field === ms.field) continue; // skip self
+        const sel = F[other.field];
+        if(!sel || sel.size === 0) continue; // all = no restriction
+        if(!setHasCI(sel, getRowVal(r, other.field))) return false;
+      }
+      if(F.stage && r._masterStage.toLowerCase().trim() !== F.stage.toLowerCase().trim()) return false;
+      return true;
+    });
+
+    const newVals = getOptionVals(ms.field, partialRows);
+
+    // Preserve existing selection — keep only values that still exist
+    const curSel = F[ms.field];
+    if(curSel !== null && curSel !== undefined){
+      const stillValid = new Set([...curSel].filter(v=>
+        newVals.some(nv=>nv.toLowerCase().trim()===v.toLowerCase().trim())
+      ));
+      F[ms.field] = stillValid.size === newVals.length ? null : stillValid;
+    }
+
+    // Update the dropdown options
+    ms.setOptionsKeepSel(newVals);
+
+    // Show/hide search
+    const def = ALL_MS_DEFS.find(d=>d.field===ms.field);
+    if(def && def.searchId){
+      const el = $(def.searchId);
+      if(el) el.parentElement.style.display = newVals.length > 3 ? '' : 'none';
+    }
+  });
+}
+
+function getRowVal(r, field){
+  switch(field){
+    case 'entname': return (r['Account Name']||'').trim();
+    case 'rooftop': return (r['Team ID']||'').trim();
+    case 'seg':     return r._masterSegment||'';
+    case 'type':    return r['Type']||'';
+    case 'person':  return r['Person Responsible']||'';
+    case 'dms':     return (r['DMS']||'').trim();
+    default:        return '';
+  }
 }
 
 // ----------------------------------------
@@ -1634,6 +1710,11 @@ function createMS(triggerId,panelId,textId,listId,searchInputId){
       F[ms.field]=null; // reset to all on repopulate
       renderList();refreshTrigger();
     },
+    // Update options without resetting selection (used for cascade)
+    setOptionsKeepSel(items){
+      options=items.slice();
+      renderList();refreshTrigger();
+    },
     close(){panel.classList.remove('open');trigger.classList.remove('open');},
     refreshTrigger(){refreshTrigger();}
   };
@@ -1711,29 +1792,42 @@ function createMS(triggerId,panelId,textId,listId,searchInputId){
   return ms;
 }
 
-const msSeg=createMS('msSegTrigger','msSegPanel','msSegText','msSegList');
-msSeg.field='seg';msSeg.onChange=()=>refresh();
-const msType=createMS('msTypeTrigger','msTypePanel','msTypeText','msTypeList');
-msType.field='type';msType.onChange=()=>refresh();
-const msPerson=createMS('msPersonTrigger','msPersonPanel','msPersonText','msPersonList');
-msPerson.field='person';msPerson.onChange=()=>refresh();
-const msEntName=createMS('msEntNameTrigger','msEntNamePanel','msEntNameText','msEntNameList','msEntNameSearch');
-msEntName.field='entname';msEntName.onChange=()=>refresh();
-const msRooftop=createMS('msRooftopTrigger','msRooftopPanel','msRooftopText','msRooftopList','msRooftopSearch');
-msRooftop.field='rooftop';msRooftop.onChange=()=>refresh();
-const msDms=createMS('msDmsTrigger','msDmsPanel','msDmsText','msDmsList');
-msDms.field='dms';msDms.onChange=()=>refresh();
+// All MS components — search IDs passed for all (search shown only when >3 options)
+const ALL_MS_DEFS = [
+  {field:'entname', triggerId:'msEntNameTrigger', panelId:'msEntNamePanel', textId:'msEntNameText', listId:'msEntNameList', searchId:'msEntNameSearch', wrapId:'msEntNameWrap'},
+  {field:'rooftop', triggerId:'msRooftopTrigger', panelId:'msRooftopPanel', textId:'msRooftopText', listId:'msRooftopList', searchId:'msRooftopSearch', wrapId:'msRooftopWrap'},
+  {field:'seg',     triggerId:'msSegTrigger',     panelId:'msSegPanel',     textId:'msSegText',     listId:'msSegList',     searchId:'msSegSearch',     wrapId:'msSegWrap'},
+  {field:'type',    triggerId:'msTypeTrigger',     panelId:'msTypePanel',    textId:'msTypeText',    listId:'msTypeList',    searchId:'msTypeSearch',    wrapId:'msTypeWrap'},
+  {field:'person',  triggerId:'msPersonTrigger',   panelId:'msPersonPanel',  textId:'msPersonText',  listId:'msPersonList',  searchId:'msPersonSearch',  wrapId:'msPersonWrap'},
+  {field:'dms',     triggerId:'msDmsTrigger',      panelId:'msDmsPanel',     textId:'msDmsText',     listId:'msDmsList',     searchId:'msDmsSearch',     wrapId:'msDmsWrap'},
+];
+const msEntName = createMS('msEntNameTrigger','msEntNamePanel','msEntNameText','msEntNameList','msEntNameSearch');
+msEntName.field='entname';
+const msRooftop = createMS('msRooftopTrigger','msRooftopPanel','msRooftopText','msRooftopList','msRooftopSearch');
+msRooftop.field='rooftop';
+const msSeg     = createMS('msSegTrigger','msSegPanel','msSegText','msSegList','msSegSearch');
+msSeg.field='seg';
+const msType    = createMS('msTypeTrigger','msTypePanel','msTypeText','msTypeList','msTypeSearch');
+msType.field='type';
+const msPerson  = createMS('msPersonTrigger','msPersonPanel','msPersonText','msPersonList','msPersonSearch');
+msPerson.field='person';
+const msDms     = createMS('msDmsTrigger','msDmsPanel','msDmsText','msDmsList','msDmsSearch');
+msDms.field='dms';
+const ALL_MS = [msEntName, msRooftop, msSeg, msType, msPerson, msDms];
+// Wire onChange for all — cascading filter update
+ALL_MS.forEach(ms => { ms.onChange = () => { cascadeFilters(ms.field); refresh(); }; });
 
 function msSetOptions(ms,field,items,allLabel){
+  // Legacy helper — cascade logic now handles this directly
   ms.field=field;
   const plural=allLabel.replace('All ','');
+  ms.pluralLabel=plural; ms.singularLabel=plural;
   ms.setOptions(items,plural,plural);
 }
 
 document.addEventListener('mousedown',e=>{
-  [['msSegWrap',msSeg],['msTypeWrap',msType],['msPersonWrap',msPerson],
-   ['msEntNameWrap',msEntName],['msRooftopWrap',msRooftop],['msDmsWrap',msDms]].forEach(([id,ms])=>{
-    if(!$(id).contains(e.target))ms.close();
+  ALL_MS_DEFS.forEach(def=>{
+    if(!$(def.wrapId).contains(e.target)) getMsForField(def.field).close();
   });
 });
 
@@ -1836,7 +1930,8 @@ $('fStage').addEventListener('change',e=>{F.stage=e.target.value;refresh();});
 $('resetBtn').addEventListener('click',()=>{
   F.from=null;F.to=null;F.preset='all';F.seg=null;F.type=null;F.person=null;F.stage='';F.entname=null;F.rooftop=null;F.dms=null;
   $('fStage').value='';
-  [msSeg,msType,msPerson,msEntName,msRooftop,msDms].forEach(ms=>{F[ms.field]=null;ms.refreshTrigger();});
+  ALL_MS.forEach(ms=>{F[ms.field]=null;ms.refreshTrigger();});
+  populateFilters(); // restore all options to full dataset
   syncDateUI();refresh();
 });
 $('syncBtn').addEventListener('click',()=>loadAll());
