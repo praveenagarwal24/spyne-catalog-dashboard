@@ -479,12 +479,22 @@ tr:hover td{background:var(--bg);}
     <div class="panel p-full">
       <div class="panel-header">
         <div class="panel-title-wrap">
-          <h3>VIN type breakdown MOM</h3>
-          <div class="panel-sub">Live · Console Upload · Console Download · DMS Download · Others</div>
+          <h3>VIN type breakdown</h3>
+          <div class="panel-sub" id="typeBreakSub">by type · grouped bars or curves</div>
         </div>
-        <div class="trend-tabs" id="typeTabs">
-          <button class="trend-tab sel" data-t="stacked">Stacked</button>
-          <button class="trend-tab" data-t="line">Lines</button>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div class="trend-tabs" id="typeRangeTabs">
+            <button class="trend-tab" data-tr="today">Today</button>
+            <button class="trend-tab" data-tr="yesterday">Yesterday</button>
+            <button class="trend-tab" data-tr="last_7">Last 7d</button>
+            <button class="trend-tab" data-tr="this_month">This month</button>
+            <button class="trend-tab" data-tr="last_month">Last month</button>
+            <button class="trend-tab sel" data-tr="last_3_months">Last 3 months</button>
+          </div>
+          <div class="trend-tabs" id="typeTabs">
+            <button class="trend-tab sel" data-t="bar">Bar</button>
+            <button class="trend-tab" data-t="line">Curve</button>
+          </div>
         </div>
       </div>
       <div class="chart-wrap tall"><canvas id="cTypeMom"></canvas></div>
@@ -573,7 +583,8 @@ let trendRange = 'last_3_months'; // owns the trend chart date range independent
 let trendChartType = 'line'; // 'line' or 'bar'
 // trendMetrics: Set of active metrics — vins, images, enterprises, rooftops
 let trendMetrics = new Set(['vins','images']);
-let typeChartMode = 'stacked';
+let typeChartMode = 'bar'; // 'bar' = grouped bars, 'line' = curves
+let typeRange = 'last_3_months';
 let userMetric = 'vins';
 let entSortState = { col:'totalVins', dir:'desc' };
 
@@ -1354,39 +1365,62 @@ function typeColor(t,PAL){
   return PAL.red;
 }
 
-function renderTypeMom(months){
-  killChart('cTypeMom');
-  const sortedMk=MONTHS_ORDER.filter(mk=>months[mk]);
-  if(!sortedMk.length)return;
-  const PAL=getPal();
-  const labels=mkMonthLabels(sortedMk);
-  const knownTypes=['Live','Console Upload','Console Download','DMS Download','No Data Available'];
-  const allTypes=new Set();
-  sortedMk.forEach(mk=>Object.keys(months[mk].typeMap||{}).forEach(t=>allTypes.add(t)));
-  const otherTypes=[...allTypes].filter(t=>!knownTypes.includes(t)&&t);
+// TYPE ORDER for consistent display
+const TYPE_DISPLAY_ORDER = ['DMS Download','Console Upload','Console Download','Live','No Data Available'];
 
+function renderTypeMom(rows){
+  killChart('cTypeMom');
+  if(!rows||!rows.length) return;
+
+  // Use buildTrendBuckets for day/month granularity based on typeRange
+  const {buckets, granularity} = buildTrendBuckets(rows, typeRange);
+  if(!buckets.length) return;
+
+  const PAL=getPal();
+  const labels=buckets.map(b=>b.label);
   const ptBorder=isDark?PAL.ink:'#fff';
-  const datasets=knownTypes.map(t=>({
-    label:t,
-    data:sortedMk.map(mk=>months[mk].typeMap[t]||0),
-    backgroundColor:hexToRgba(typeColor(t,PAL),typeChartMode==='stacked'?.8:.4),
-    borderColor:typeColor(t,PAL),
-    borderWidth:typeChartMode==='line'?2:0,
-    borderRadius:typeChartMode==='stacked'?0:3,
-    tension:0.35,
-    pointRadius:typeChartMode==='line'?3:0,
-    pointBackgroundColor:typeColor(t,PAL),
-    pointBorderColor:ptBorder,
-    fill:false,
-    datalabels:{display:false},
-  }));
-  if(otherTypes.length){
-    const othData=sortedMk.map(mk=>otherTypes.reduce((s,t)=>s+(months[mk].typeMap[t]||0),0));
-    datasets.push({label:'Others',data:othData,backgroundColor:hexToRgba(PAL.red,.8),borderColor:PAL.red,borderWidth:0,borderRadius:0,datalabels:{display:false}});
+
+  // Collect all type names from buckets
+  const allTypeSet=new Set();
+  buckets.forEach(b=>Object.keys(b.typeMap||{}).forEach(t=>allTypeSet.add(t)));
+  const orderedTypes=TYPE_DISPLAY_ORDER.filter(t=>allTypeSet.has(t));
+  const otherTypes=[...allTypeSet].filter(t=>!TYPE_DISPLAY_ORDER.includes(t)&&t).sort();
+
+  const isLine = typeChartMode==='line';
+
+  const makeDs = (t, color) => {
+    const data=buckets.map(b=>b.typeMap&&b.typeMap[t]?b.typeMap[t]:0);
+    return {
+      label:t, data,
+      backgroundColor: isLine ? 'transparent' : hexToRgba(color,.8),
+      borderColor: color,
+      borderWidth: isLine ? 2 : 1,
+      borderRadius: isLine ? 0 : 4,
+      maxBarThickness: 20,
+      tension: 0.35,
+      pointRadius: isLine ? 3 : 0,
+      pointHoverRadius: isLine ? 6 : 0,
+      pointBackgroundColor: color,
+      pointBorderColor: ptBorder,
+      fill: false,
+      datalabels:{display:false},
+    };
+  };
+
+  const datasets=[
+    ...orderedTypes.map(t=>makeDs(t, typeColor(t,PAL))),
+    ...otherTypes.map(t=>makeDs(t, PAL.red)),
+  ];
+  if(otherTypes.length>1){
+    // Merge all "other" types into single "Others" series
+    const othData=buckets.map(b=>otherTypes.reduce((s,t)=>s+((b.typeMap&&b.typeMap[t])||0),0));
+    const othDs=makeDs('Others', PAL.red);
+    othDs.data=othData;
+    datasets.splice(datasets.length-otherTypes.length, otherTypes.length, othDs);
   }
 
   charts.cTypeMom=new Chart($('cTypeMom'),{
-    type:typeChartMode==='line'?'line':'bar',plugins:[ChartDataLabels],
+    type: isLine?'line':'bar', plugins:[ChartDataLabels],
     data:{labels,datasets},
     options:{
       responsive:true,maintainAspectRatio:false,
@@ -1394,22 +1428,32 @@ function renderTypeMom(months){
       layout:{padding:{top:10}},
       plugins:{
         legend:{display:false},
-        tooltip:{backgroundColor:PAL.ink,titleColor:isDark?'#0b0b0c':'#fff',bodyColor:isDark?'#0b0b0c':'#fff',
-          padding:10,displayColors:true,boxPadding:4,cornerRadius:6,
-          callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}`}},
+        tooltip:{
+          backgroundColor:isDark?'#1c1c1f':'#ffffff',
+          titleColor:isDark?'#f0efe9':'#0b0b0c',
+          bodyColor:isDark?'#b0b0b8':'#404045',
+          borderColor:isDark?'#2a2a2f':'#e8e6df', borderWidth:1,
+          padding:{top:10,bottom:10,left:12,right:12},
+          displayColors:true,boxPadding:5,cornerRadius:8,
+          callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toLocaleString()}
+        },
         datalabels:{display:false}
       },
       scales:{
-        x:{stacked:typeChartMode==='stacked',grid:{display:false},ticks:{font:{size:10},color:PAL.muted,maxRotation:0,autoSkip:true}},
-        y:{stacked:typeChartMode==='stacked',grid:{color:PAL.line,drawBorder:false},beginAtZero:true,
+        x:{grid:{display:false},ticks:{font:{size:10},color:PAL.muted,maxRotation:granularity==='day'?30:0,autoSkip:true,maxTicksLimit:granularity==='day'?31:13}},
+        y:{grid:{color:PAL.line,drawBorder:false},beginAtZero:true,
            ticks:{font:{size:10},color:PAL.muted,precision:0,padding:6,callback:v=>numK(v)}}
       }
     }
   });
 
-  $('typeLegend').innerHTML=[...datasets].map(ds=>
-    `<div class="trend-legend-item"><span class="ldot ${typeChartMode==='line'?'line':''}" style="background:${ds.borderColor}"></span><span>${esc(ds.label)}</span></div>`
+  $('typeLegend').innerHTML=datasets.map(ds=>
+    '<div class="trend-legend-item"><span class="ldot'+(isLine?' line':'')+'" style="background:'+ds.borderColor+'"></span><span>'+esc(ds.label)+'</span></div>'
   ).join('');
+
+  const rangeLabels={'today':'Today','yesterday':'Yesterday','last_7':'Last 7 days',
+    'this_month':'This month','last_month':'Last month','last_3_months':'Last 3 months'};
+  if($('typeBreakSub')) $('typeBreakSub').textContent=(rangeLabels[typeRange]||typeRange)+' · by '+(granularity==='day'?'day':'month')+' · '+(isLine?'curves':'grouped bars');
 }
 
 // ----------------------------------------
@@ -1685,7 +1729,7 @@ function paint(){
   renderKPIs(k, k.months, kAll.months);
   renderMetricChips();
   renderTrend(filtered);
-  renderTypeMom(k.months);
+  renderTypeMom(filtered);
   renderUserHeatmap(k.personMonthMap);
   renderPersonTrend(k.personMonthMap);
   renderEntTable(k.ents);
@@ -1925,11 +1969,17 @@ $('trendRangeTabs').addEventListener('click',e=>{
   $('trendRangeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
   killChart('cTrend');renderTrend(window._lastFilteredRows||[]);
 });
+$('typeRangeTabs').addEventListener('click',e=>{
+  const b=e.target.closest('.trend-tab');if(!b)return;
+  typeRange=b.dataset.tr;
+  $('typeRangeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
+  killChart('cTypeMom');renderTypeMom(window._lastFilteredRows||[]);
+});
 $('typeTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
   typeChartMode=b.dataset.t;
   $('typeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
-  killChart('cTypeMom');renderTypeMom(window._lastFilteredMonths||{});
+  killChart('cTypeMom');renderTypeMom(window._lastFilteredRows||[]);
 });
 $('userMetricTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
