@@ -334,6 +334,34 @@ tr:hover td{background:var(--bg);}
       </div>
     </div>
 
+    <!-- Enterprise Name -->
+    <div class="f-group ms-wrap" id="msEntNameWrap">
+      <label class="f-label">Enterprise</label>
+      <div class="ms-trigger" id="msEntNameTrigger" tabindex="0" style="min-width:150px;">
+        <span class="ms-text" id="msEntNameText">All enterprises</span>
+        <svg class="ms-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2,4 6,8 10,4"/></svg>
+      </div>
+      <div class="ms-panel" id="msEntNamePanel">
+        <div class="ms-search-wrap"><input type="text" class="ms-search" id="msEntNameSearch" placeholder="Search enterprise…"></div>
+        <div class="ms-actions"><button class="ms-action" data-act="all" data-ms="entname">All</button><button class="ms-action muted" data-act="none" data-ms="entname">None</button></div>
+        <div class="ms-list" id="msEntNameList"></div>
+      </div>
+    </div>
+
+    <!-- Rooftop -->
+    <div class="f-group ms-wrap" id="msRooftopWrap">
+      <label class="f-label">Rooftop</label>
+      <div class="ms-trigger" id="msRooftopTrigger" tabindex="0" style="min-width:140px;">
+        <span class="ms-text" id="msRooftopText">All rooftops</span>
+        <svg class="ms-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2,4 6,8 10,4"/></svg>
+      </div>
+      <div class="ms-panel" id="msRooftopPanel">
+        <div class="ms-search-wrap"><input type="text" class="ms-search" id="msRooftopSearch" placeholder="Search rooftop…"></div>
+        <div class="ms-actions"><button class="ms-action" data-act="all" data-ms="rooftop">All</button><button class="ms-action muted" data-act="none" data-ms="rooftop">None</button></div>
+        <div class="ms-list" id="msRooftopList"></div>
+      </div>
+    </div>
+
     <!-- Segment -->
     <div class="f-group ms-wrap" id="msSegWrap">
       <label class="f-label">Segment</label>
@@ -554,7 +582,7 @@ let MASTER_MAP = {}; // enterpriseId -> masterRow
 const charts = {};
 const MONTHS_ORDER = [];
 
-const F = { from:null, to:null, preset:'last_30', seg:null, type:null, person:null, stage:'' };
+const F = { from:null, to:null, preset:'last_30', seg:null, type:null, person:null, stage:'', entname:null, rooftop:null };
 let trendRange = 'last_3_months'; // owns the trend chart date range independently
 let trendChartType = 'line'; // 'line' or 'bar'
 // trendMetrics: Set of active metrics — vins, images, enterprises, rooftops
@@ -707,9 +735,13 @@ function populateFilters(){
   const segs=[...new Set(RAW_VIN.map(r=>r._masterSegment).filter(s=>s&&s!=='#N/A'))].sort();
   const types=[...new Set(RAW_VIN.map(r=>r['Type']).filter(Boolean))].sort();
   const persons=[...new Set(RAW_VIN.map(r=>r['Person Responsible']).filter(Boolean))].sort();
+  const entNames=[...new Set(RAW_VIN.map(r=>(r['Account Name']||'').trim()).filter(Boolean))].sort();
+  const rooftops=[...new Set(RAW_VIN.map(r=>(r['Team ID']||'').trim()).filter(Boolean))].sort();
   msSetOptions(msSeg,'seg',segs,'All segments');
   msSetOptions(msType,'type',types,'All types');
   msSetOptions(msPerson,'person',persons,'All persons');
+  msSetOptions(msEntName,'entname',entNames,'All enterprises');
+  msSetOptions(msRooftop,'rooftop',rooftops,'All rooftops');
 }
 
 // ----------------------------------------
@@ -717,10 +749,12 @@ function populateFilters(){
 // ----------------------------------------
 function passesFilters(r){
   if(F.from||F.to){ if(!r._date||!passesDateFilter(r._date)) return false; }
-  if(F.seg    && F.seg.size>0    && !F.seg.has(r._masterSegment))      return false;
-  if(F.type   && F.type.size>0   && !F.type.has(r['Type']))             return false;
-  if(F.person && F.person.size>0 && !F.person.has(r['Person Responsible'])) return false;
-  if(F.stage  && r._masterStage.trim()!==F.stage)                       return false;
+  if(F.seg     && F.seg.size>0     && !F.seg.has(r._masterSegment))           return false;
+  if(F.type    && F.type.size>0    && !F.type.has(r['Type']))                 return false;
+  if(F.person  && F.person.size>0  && !F.person.has(r['Person Responsible'])) return false;
+  if(F.stage   && r._masterStage.trim()!==F.stage)                            return false;
+  if(F.entname && F.entname.size>0 && !F.entname.has((r['Account Name']||'').trim())) return false;
+  if(F.rooftop && F.rooftop.size>0 && !F.rooftop.has((r['Team ID']||'').trim()))     return false;
   return true;
 }
 
@@ -1561,9 +1595,10 @@ function refresh(){
 // ----------------------------------------
 // MULTI-SELECT COMPONENT
 // ----------------------------------------
-function createMS(triggerId,panelId,textId,listId){
+function createMS(triggerId,panelId,textId,listId,searchInputId){
   const trigger=$(triggerId),panel=$(panelId),text=$(textId),list=$(listId);
-  let options=[];
+  const searchEl=searchInputId?$(searchInputId):null;
+  let options=[],searchQ='';
   const ms={
     field:null,singularLabel:'item',pluralLabel:'items',
     onChange:null,
@@ -1574,20 +1609,22 @@ function createMS(triggerId,panelId,textId,listId){
     close(){panel.classList.remove('open');trigger.classList.remove('open');},
     refreshTrigger(){refreshTrigger();}
   };
-  function open(){panel.classList.add('open');trigger.classList.add('open');renderList();}
+  function open(){panel.classList.add('open');trigger.classList.add('open');searchQ='';if(searchEl){searchEl.value='';setTimeout(()=>searchEl.focus(),30);}renderList();}
   function isOpen(){return panel.classList.contains('open');}
   function refreshTrigger(){
     const sel=F[ms.field];
-    if(!sel||sel.size===0){text.textContent=`All ${ms.pluralLabel}`;return;}
-    if(sel.size===options.length){text.textContent=`All ${ms.pluralLabel}`;return;}
+    if(!sel||sel.size===0){text.textContent='All '+ms.pluralLabel;return;}
+    if(sel.size===options.length){text.textContent='All '+ms.pluralLabel;return;}
     if(sel.size===1){text.textContent=[...sel][0]||'(blank)';return;}
-    text.innerHTML=`${sel.size} ${ms.pluralLabel} <span class="ms-pill">${options.length-sel.size} hidden</span>`;
+    text.innerHTML=sel.size+' '+ms.pluralLabel+' <span class="ms-pill">'+(options.length-sel.size)+' hidden</span>';
   }
   function renderList(){
     const sel=F[ms.field];
-    list.innerHTML=options.map(v=>{
+    const filtered=searchQ?options.filter(v=>v.toLowerCase().includes(searchQ.toLowerCase())):options;
+    if(!filtered.length){list.innerHTML='<div class="ms-empty">No matches</div>';return;}
+    list.innerHTML=filtered.map(v=>{
       const checked=!sel||sel.size===0||sel.has(v);
-      return`<label class="ms-item"><input type="checkbox" data-val="${esc(v)}" ${checked?'checked':''}><span class="ms-item-label">${esc(v||'(blank)')}</span></label>`;
+      return'<label class="ms-item"><input type="checkbox" data-val="'+esc(v)+'" '+(checked?'checked':'')+'><span class="ms-item-label">'+esc(v||'(blank)')+'</span></label>';
     }).join('');
     list.querySelectorAll('input').forEach(cb=>{
       cb.addEventListener('change',e=>{e.stopPropagation();toggle(cb.dataset.val,cb.checked);});
@@ -1603,6 +1640,7 @@ function createMS(triggerId,panelId,textId,listId){
   trigger.addEventListener('click',e=>{e.stopPropagation();if(isOpen())ms.close();else open();});
   panel.addEventListener('click',e=>e.stopPropagation());
   panel.addEventListener('mousedown',e=>e.stopPropagation());
+  if(searchEl) searchEl.addEventListener('input',()=>{searchQ=searchEl.value;renderList();});
   panel.querySelectorAll('.ms-action').forEach(b=>{
     b.addEventListener('click',e=>{
       e.stopPropagation();
@@ -1619,6 +1657,10 @@ const msType=createMS('msTypeTrigger','msTypePanel','msTypeText','msTypeList');
 msType.field='type';msType.onChange=()=>refresh();
 const msPerson=createMS('msPersonTrigger','msPersonPanel','msPersonText','msPersonList');
 msPerson.field='person';msPerson.onChange=()=>refresh();
+const msEntName=createMS('msEntNameTrigger','msEntNamePanel','msEntNameText','msEntNameList','msEntNameSearch');
+msEntName.field='entname';msEntName.onChange=()=>refresh();
+const msRooftop=createMS('msRooftopTrigger','msRooftopPanel','msRooftopText','msRooftopList','msRooftopSearch');
+msRooftop.field='rooftop';msRooftop.onChange=()=>refresh();
 
 function msSetOptions(ms,field,items,allLabel){
   ms.field=field;
@@ -1627,7 +1669,8 @@ function msSetOptions(ms,field,items,allLabel){
 }
 
 document.addEventListener('mousedown',e=>{
-  [['msSegWrap',msSeg],['msTypeWrap',msType],['msPersonWrap',msPerson]].forEach(([id,ms])=>{
+  [['msSegWrap',msSeg],['msTypeWrap',msType],['msPersonWrap',msPerson],
+   ['msEntNameWrap',msEntName],['msRooftopWrap',msRooftop]].forEach(([id,ms])=>{
     if(!$(id).contains(e.target))ms.close();
   });
 });
@@ -1729,9 +1772,9 @@ $('userMetricTabs').addEventListener('click',e=>{
 });
 $('fStage').addEventListener('change',e=>{F.stage=e.target.value;refresh();});
 $('resetBtn').addEventListener('click',()=>{
-  F.from=null;F.to=null;F.preset='all';F.seg=null;F.type=null;F.person=null;F.stage='';
+  F.from=null;F.to=null;F.preset='all';F.seg=null;F.type=null;F.person=null;F.stage='';F.entname=null;F.rooftop=null;
   $('fStage').value='';
-  [msSeg,msType,msPerson].forEach(ms=>{F[ms.field]=null;ms.refreshTrigger();});
+  [msSeg,msType,msPerson,msEntName,msRooftop].forEach(ms=>{F[ms.field]=null;ms.refreshTrigger();});
   syncDateUI();refresh();
 });
 $('syncBtn').addEventListener('click',()=>loadAll());
