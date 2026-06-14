@@ -155,6 +155,12 @@ main{padding:22px 28px 80px;max-width:1600px;margin:0 auto;}
 .trend-legend-item .ldot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
 .ldot.line{border-radius:0;height:2px;width:16px;}
 .trend-legend-item .lval{color:var(--ink);font-weight:500;}
+.metric-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;
+  font:500 12px 'Inter';cursor:pointer;border:1.5px solid transparent;transition:all .15s;user-select:none;white-space:nowrap;}
+.metric-chip .chip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.metric-chip.off{background:var(--bg);border-color:var(--line);color:var(--muted);}
+.metric-chip.off .chip-dot{opacity:.3;}
+.metric-chip.on{background:var(--surface);border-color:currentColor;color:var(--ink);}
 
 /* TABLE */
 .table-scroll{max-height:420px;overflow:auto;}
@@ -396,7 +402,7 @@ tr:hover td{background:var(--bg);}
           <h3 id="trendTitle">Trend</h3>
           <div class="panel-sub" id="trendSub">VINs · Images · by day/month</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
           <div class="trend-tabs" id="trendRangeTabs">
             <button class="trend-tab" data-tr="today">Today</button>
             <button class="trend-tab" data-tr="yesterday">Yesterday</button>
@@ -405,11 +411,7 @@ tr:hover td{background:var(--bg);}
             <button class="trend-tab" data-tr="last_month">Last month</button>
             <button class="trend-tab sel" data-tr="last_3_months">Last 3 months</button>
           </div>
-          <div class="trend-tabs" id="metricTabs">
-            <button class="trend-tab" data-m="vins">VINs</button>
-            <button class="trend-tab" data-m="images">Images</button>
-            <button class="trend-tab sel" data-m="both">Both</button>
-          </div>
+          <div id="metricChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
         </div>
       </div>
       <div class="chart-wrap tall"><canvas id="cTrend"></canvas></div>
@@ -543,8 +545,9 @@ const charts = {};
 const MONTHS_ORDER = [];
 
 const F = { from:null, to:null, preset:'last_30', seg:null, type:null, person:null, stage:'' };
-let trendMetric = 'both';
 let trendRange = 'last_3_months'; // owns the trend chart date range independently
+// trendMetrics: Set of active metrics — vins, images, enterprises, rooftops
+let trendMetrics = new Set(['vins','images']);
 let typeChartMode = 'stacked';
 let userMetric = 'vins';
 let entSortState = { col:'totalVins', dir:'desc' };
@@ -897,19 +900,22 @@ function buildTrendBuckets(rows, range){
       buckets.push({
         label:d.toLocaleDateString('en-US',{month:'short',day:'numeric'}),
         key:d.toISOString().slice(0,10),
-        vins:0,images:0,isDay:true,date:new Date(d)
+        vins:0,images:0,ents:new Set(),_rooftops:new Set()
       });
       cur.setDate(cur.getDate()+1);
     }
-    // Fill from rows
     for(const r of rows){
       if(!r._date) continue;
       const key=r._date.toISOString().slice(0,10);
       const b=buckets.find(b=>b.key===key);
-      if(b){ b.vins++; b.images+=parseInt(r['Image Count'])||0; }
+      if(b){
+        b.vins++;
+        b.images+=parseInt(r['Image Count'])||0;
+        if(r['Enterprise ID']) b.ents.add(r['Enterprise ID']);
+        if(r['Team ID']) b._rooftops.add(r['Team ID']);
+      }
     }
   } else {
-    // Month granularity
     const cur=new Date(from.getFullYear(),from.getMonth(),1);
     const endMo=new Date(to.getFullYear(),to.getMonth(),1);
     while(cur<=endMo){
@@ -917,64 +923,97 @@ function buildTrendBuckets(rows, range){
       const sameYear=cur.getFullYear()===now.getFullYear();
       buckets.push({
         label:cur.toLocaleDateString('en-US',sameYear?{month:'short'}:{month:'short',year:'2-digit'}),
-        key:mk, vins:0, images:0
+        key:mk, vins:0, images:0, ents:new Set(), _rooftops:new Set()
       });
       cur.setMonth(cur.getMonth()+1);
     }
     for(const r of rows){
       if(!r._month) continue;
       const b=buckets.find(b=>b.key===r._month);
-      if(b){ b.vins++; b.images+=parseInt(r['Image Count'])||0; }
+      if(b){
+        b.vins++;
+        b.images+=parseInt(r['Image Count'])||0;
+        if(r['Enterprise ID']) b.ents.add(r['Enterprise ID']);
+        if(r['Team ID']) b._rooftops.add(r['Team ID']);
+      }
     }
   }
+  // Convert Sets to counts
+  buckets.forEach(b=>{ b.enterprises=b.ents.size; b.rooftops=b._rooftops.size; });
   return {buckets, granularity, from, to};
+}
+
+// Metric definitions for the trend chart
+const TREND_METRIC_DEFS = [
+  {key:'vins',       label:'VINs',        color:'#6b9eff', field:'vins'},
+  {key:'images',     label:'Images',      color:'#22d3ee', field:'images'},
+  {key:'enterprises',label:'Enterprises', color:'#c084fc', field:'enterprises'},
+  {key:'rooftops',   label:'Rooftops',    color:'#f5c265', field:'rooftops'},
+];
+
+function renderMetricChips(){
+  const wrap=$('metricChips');
+  if(!wrap) return;
+  wrap.innerHTML=TREND_METRIC_DEFS.map(m=>{
+    const on=trendMetrics.has(m.key);
+    return '<div class="metric-chip '+(on?'on':'off')+'" data-mk="'+m.key+'" style="'+(on?'color:'+m.color+';border-color:'+m.color+'':'')+'">'
+      +'<span class="chip-dot" style="background:'+m.color+'"></span>'+m.label+'</div>';
+  }).join('');
+  wrap.querySelectorAll('.metric-chip').forEach(chip=>{
+    chip.addEventListener('click',()=>{
+      const key=chip.dataset.mk;
+      if(trendMetrics.has(key)){
+        // Only remove if at least 1 other metric will remain
+        if(trendMetrics.size>1) trendMetrics.delete(key);
+      } else {
+        trendMetrics.add(key);
+      }
+      renderMetricChips();
+      killChart('cTrend');
+      renderTrend(window._lastFilteredRows||[]);
+    });
+  });
 }
 
 function renderTrend(rows){
   killChart('cTrend');
-  if(!rows||!rows.length){
-    // No rows passed — use full filtered set (called from paint with k.months passthrough)
-    // This branch handles legacy calls with months object
-    return;
-  }
+  if(!rows||!rows.length) return;
   const {buckets, granularity} = buildTrendBuckets(rows, trendRange);
   if(!buckets.length) return;
 
   const PAL=getPal();
   const labels=buckets.map(b=>b.label);
-  const vins=buckets.map(b=>b.vins);
-  const images=buckets.map(b=>b.images);
   const ptBorder=isDark?PAL.ink:'#fff';
-
   const ctx=$('cTrend').getContext('2d');
-  const gVin=ctx.createLinearGradient(0,0,0,340);
-  gVin.addColorStop(0,hexToRgba(PAL.accent,.25));gVin.addColorStop(1,hexToRgba(PAL.accent,0));
-  const gImg=ctx.createLinearGradient(0,0,0,340);
-  gImg.addColorStop(0,hexToRgba(PAL.cyan,.2));gImg.addColorStop(1,hexToRgba(PAL.cyan,0));
 
-  const dlOpts=(col,pos)=>({
-    anchor:'end',align:pos,clamp:true,
-    color:PAL.muted,font:{family:"'JetBrains Mono',monospace",size:9,weight:'600'},
-    formatter:v=>v>0?numK(v):'',padding:{top:2,bottom:2}
+  // Build datasets for each active metric
+  // Use left Y axis for VINs/Enterprises/Rooftops, right Y for Images (scale differs)
+  const activeMetrics=TREND_METRIC_DEFS.filter(m=>trendMetrics.has(m.key));
+  const hasImages=trendMetrics.has('images');
+  const hasNonImages=activeMetrics.some(m=>m.key!=='images');
+  const useY2=hasImages&&hasNonImages; // dual axis when mixing images with others
+
+  const datasets=activeMetrics.map((m,i)=>{
+    const data=buckets.map(b=>b[m.field]||0);
+    const isImg=m.key==='images';
+    const isSingle=activeMetrics.length===1;
+    const g=ctx.createLinearGradient(0,0,0,340);
+    g.addColorStop(0,hexToRgba(m.color,.22));g.addColorStop(1,hexToRgba(m.color,0));
+    return {
+      label:m.label, data, borderColor:m.color,
+      backgroundColor:isSingle?g:'transparent',
+      yAxisID:useY2&&isImg?'y2':'y',
+      borderWidth:2.2, tension:0.35,
+      pointRadius:granularity==='day'?3:4, pointHoverRadius:7,
+      pointBackgroundColor:m.color, pointBorderColor:ptBorder, pointBorderWidth:0,
+      fill:isSingle,
+      datalabels:{
+        anchor:'end', align:i%2===0?'top':'bottom', clamp:true,
+        color:m.color, font:{family:"'JetBrains Mono',monospace",size:9,weight:'600'},
+        formatter:v=>v>0?numK(v):'', padding:{top:2,bottom:2}
+      }
+    };
   });
-
-  const datasets=[];
-  if(trendMetric==='vins'||trendMetric==='both'){
-    datasets.push({label:'VINs',data:vins,borderColor:PAL.accent,
-      backgroundColor:trendMetric==='both'?'transparent':gVin,
-      yAxisID:'y',borderWidth:2.2,tension:0.35,
-      pointRadius:granularity==='day'?3:4,pointHoverRadius:7,
-      pointBackgroundColor:PAL.accent,pointBorderColor:ptBorder,pointBorderWidth:0,
-      fill:trendMetric==='vins',datalabels:dlOpts(PAL.accent,'top')});
-  }
-  if(trendMetric==='images'||trendMetric==='both'){
-    datasets.push({label:'Images',data:images,borderColor:PAL.cyan,
-      backgroundColor:trendMetric==='both'?'transparent':gImg,
-      yAxisID:trendMetric==='both'?'y2':'y',borderWidth:2,tension:0.35,
-      pointRadius:granularity==='day'?2.5:3.5,pointHoverRadius:6,
-      pointBackgroundColor:PAL.cyan,pointBorderColor:ptBorder,
-      fill:trendMetric==='images',datalabels:dlOpts(PAL.cyan,'bottom')});
-  }
 
   const scales={
     x:{offset:true,grid:{display:false},
@@ -982,9 +1021,9 @@ function renderTrend(rows){
     y:{position:'left',grid:{color:PAL.line,drawBorder:false},beginAtZero:true,
        ticks:{font:{size:11},color:PAL.muted,precision:0,padding:8,callback:v=>numK(v)}}
   };
-  if(trendMetric==='both'){
+  if(useY2){
     scales.y2={position:'right',grid:{display:false},beginAtZero:true,
-      ticks:{font:{size:11},color:PAL.cyan,precision:0,padding:8,callback:v=>numK(v)}};
+      ticks:{font:{size:11},color:'#22d3ee',precision:0,padding:8,callback:v=>numK(v)}};
   }
 
   charts.cTrend=new Chart($('cTrend'),{
@@ -993,9 +1032,9 @@ function renderTrend(rows){
     options:{
       responsive:true,maintainAspectRatio:false,
       interaction:{mode:'index',intersect:false},
-      layout:{padding:{top:20,left:8,right:8}},
+      layout:{padding:{top:24,left:8,right:8}},
       plugins:{legend:{display:false},
-        tooltip:{backgroundColor:PAL.ink,titleColor:isDark?'#0b0b0c':'#fff',bodyColor:isDark?'#0b0b0c':'#fff',
+        tooltip:{backgroundColor:PAL.ink,titleColor:isDark?'#111':'#fff',bodyColor:isDark?'#111':'#fff',
           padding:10,displayColors:true,boxPadding:4,cornerRadius:6,
           callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toLocaleString()}},
         datalabels:{display:true}},
@@ -1003,16 +1042,16 @@ function renderTrend(rows){
     }
   });
 
-  const cols={VINs:PAL.accent,Images:PAL.cyan};
-  const totals={};
-  if(trendMetric!=='images') totals.VINs=vins.reduce((a,b)=>a+b,0);
-  if(trendMetric!=='vins')   totals.Images=images.reduce((a,b)=>a+b,0);
-  $('trendLegend').innerHTML=Object.entries(totals).map(([k,v])=>
-    '<div class="trend-legend-item"><span class="ldot" style="background:'+cols[k]+'"></span><span>'+k+': </span><span class="lval">'+numK(v)+'</span></div>'
-  ).join('');
+  // Legend strip
+  $('trendLegend').innerHTML=activeMetrics.map(m=>{
+    const total=buckets.reduce((s,b)=>s+(b[m.field]||0),0);
+    return '<div class="trend-legend-item">'
+      +'<span class="ldot" style="background:'+m.color+'"></span>'
+      +'<span>'+m.label+': </span><span class="lval">'+numK(total)+'</span></div>';
+  }).join('');
+
   const rangeLabels={'today':'Today','yesterday':'Yesterday','last_7':'Last 7 days',
-    'this_month':'This month','last_month':'Last month','last_3_months':'Last 3 months',
-    'last_6_months':'Last 6 months'};
+    'this_month':'This month','last_month':'Last month','last_3_months':'Last 3 months'};
   $('trendSub').textContent=(rangeLabels[trendRange]||trendRange)+' · by '+(granularity==='day'?'day':'month')+' · '+buckets.length+' data points';
   $('trendTitle').textContent='Trend';
 }
@@ -1394,6 +1433,7 @@ function paint(){
   window._lastFilteredMonths=k.months;
 
   renderKPIs(k, k.months, kAll.months);
+  renderMetricChips();
   renderTrend(filtered);
   renderEntMom(k.months);
   renderTypeMom(k.months);
@@ -1555,12 +1595,6 @@ $('trendRangeTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
   trendRange=b.dataset.tr;
   $('trendRangeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
-  killChart('cTrend');renderTrend(window._lastFilteredRows||[]);
-});
-$('metricTabs').addEventListener('click',e=>{
-  const b=e.target.closest('.trend-tab');if(!b)return;
-  trendMetric=b.dataset.m;
-  $('metricTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
   killChart('cTrend');renderTrend(window._lastFilteredRows||[]);
 });
 $('typeTabs').addEventListener('click',e=>{
