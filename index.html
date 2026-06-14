@@ -411,6 +411,16 @@ tr:hover td{background:var(--bg);}
             <button class="trend-tab" data-tr="last_month">Last month</button>
             <button class="trend-tab sel" data-tr="last_3_months">Last 3 months</button>
           </div>
+          <div class="trend-tabs" id="chartTypeTabs">
+            <button class="trend-tab sel" data-ct="line" title="Curve / Line chart">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,12 5,7 8,9 12,3 15,5"/></svg>
+              Curve
+            </button>
+            <button class="trend-tab" data-ct="bar" title="Bar chart">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="8" width="3" height="6" rx="1"/><rect x="6" y="4" width="3" height="10" rx="1"/><rect x="11" y="6" width="3" height="8" rx="1"/></svg>
+              Bar
+            </button>
+          </div>
           <div id="metricChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
         </div>
       </div>
@@ -546,6 +556,7 @@ const MONTHS_ORDER = [];
 
 const F = { from:null, to:null, preset:'last_30', seg:null, type:null, person:null, stage:'' };
 let trendRange = 'last_3_months'; // owns the trend chart date range independently
+let trendChartType = 'line'; // 'line' or 'bar'
 // trendMetrics: Set of active metrics — vins, images, enterprises, rooftops
 let trendMetrics = new Set(['vins','images']);
 let typeChartMode = 'stacked';
@@ -993,12 +1004,27 @@ function renderTrend(rows){
   const hasNonImages=activeMetrics.some(m=>m.key!=='images');
   const useY2=hasImages&&hasNonImages; // dual axis when mixing images with others
 
+  const isBar = trendChartType === 'bar';
   const datasets=activeMetrics.map((m,i)=>{
     const data=buckets.map(b=>b[m.field]||0);
     const isImg=m.key==='images';
     const isSingle=activeMetrics.length===1;
     const g=ctx.createLinearGradient(0,0,0,340);
     g.addColorStop(0,hexToRgba(m.color,.22));g.addColorStop(1,hexToRgba(m.color,0));
+    if(isBar){
+      return {
+        label:m.label, data,
+        backgroundColor:hexToRgba(m.color,.75),
+        borderColor:m.color, borderWidth:1,
+        borderRadius:4, maxBarThickness:activeMetrics.length>1?18:36,
+        yAxisID:useY2&&isImg?'y2':'y',
+        datalabels:{
+          anchor:'end', align:'end', clamp:true,
+          color:PAL.muted, font:{family:"'JetBrains Mono',monospace",size:9,weight:'600'},
+          formatter:v=>v>0?numK(v):'', padding:{top:2}
+        }
+      };
+    }
     return {
       label:m.label, data, borderColor:m.color,
       backgroundColor:isSingle?g:'transparent',
@@ -1017,17 +1043,19 @@ function renderTrend(rows){
 
   const scales={
     x:{offset:true,grid:{display:false},
+       stacked:isBar&&activeMetrics.length>1,
        ticks:{font:{size:11},color:PAL.muted,autoSkip:true,maxRotation:granularity==='day'?30:0,maxTicksLimit:granularity==='day'?31:13}},
     y:{position:'left',grid:{color:PAL.line,drawBorder:false},beginAtZero:true,
+       stacked:isBar&&activeMetrics.length>1,
        ticks:{font:{size:11},color:PAL.muted,precision:0,padding:8,callback:v=>numK(v)}}
   };
-  if(useY2){
+  if(useY2&&!isBar){
     scales.y2={position:'right',grid:{display:false},beginAtZero:true,
       ticks:{font:{size:11},color:'#22d3ee',precision:0,padding:8,callback:v=>numK(v)}};
   }
 
   charts.cTrend=new Chart($('cTrend'),{
-    type:'line',plugins:[ChartDataLabels],
+    type:isBar?'bar':'line',plugins:[ChartDataLabels],
     data:{labels,datasets},
     options:{
       responsive:true,maintainAspectRatio:false,
@@ -1591,6 +1619,12 @@ $('calNext').addEventListener('click',e=>{e.stopPropagation();cal.view=new Date(
 // ----------------------------------------
 // OTHER CONTROLS
 // ----------------------------------------
+$('chartTypeTabs').addEventListener('click',e=>{
+  const b=e.target.closest('[data-ct]');if(!b)return;
+  trendChartType=b.dataset.ct;
+  $('chartTypeTabs').querySelectorAll('[data-ct]').forEach(t=>t.classList.toggle('sel',t===b));
+  killChart('cTrend');renderTrend(window._lastFilteredRows||[]);
+});
 $('trendRangeTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
   trendRange=b.dataset.tr;
