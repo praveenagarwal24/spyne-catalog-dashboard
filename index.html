@@ -155,6 +155,22 @@ main{padding:22px 28px 80px;max-width:1600px;margin:0 auto;}
 .trend-legend-item .ldot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
 .ldot.line{border-radius:0;height:2px;width:16px;}
 .trend-legend-item .lval{color:var(--ink);font-weight:500;}
+.pivot-th{padding:8px 10px;background:var(--surface-2);font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--line);border-right:1px solid var(--line);white-space:nowrap;position:sticky;top:0;z-index:2;}
+.pivot-th.sticky-left{position:sticky;left:0;z-index:3;background:var(--surface-2);}
+.pivot-th.date-col{text-align:right;min-width:70px;}
+.pivot-td{padding:7px 10px;border-bottom:1px solid var(--line);border-right:1px solid var(--line-2);color:var(--ink-2);vertical-align:middle;}
+.pivot-td.sticky-left{position:sticky;left:0;background:var(--surface);z-index:1;}
+.pivot-td.acct-cell{font-weight:500;color:var(--ink);min-width:180px;max-width:220px;overflow:hidden;text-overflow:ellipsis;}
+.pivot-td.person-cell{color:var(--muted);font-size:12px;min-width:130px;}
+.pivot-td.num-cell{text-align:right;font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;}
+.pivot-td.num-cell.has-val{color:var(--ink);}
+.pivot-td.num-cell.zero{color:var(--line-2);}
+.pivot-td.total-cell{text-align:right;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--accent);border-left:2px solid var(--line);}
+.pivot-foot td{padding:8px 10px;background:var(--surface-2);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;border-top:2px solid var(--line-2);border-right:1px solid var(--line-2);text-align:right;}
+.pivot-foot td.label-cell{text-align:left;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-size:10px;position:sticky;left:0;background:var(--surface-2);}
+.pivot-acct-row td{background:var(--surface);}
+.pivot-sub-row td{background:var(--surface-2);}
+tr.pivot-acct-row:hover td, tr.pivot-sub-row:hover td{background:var(--bg);}
 .type-legend-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
   font:500 12px 'Inter';cursor:pointer;border:1.5px solid transparent;transition:all .15s;user-select:none;white-space:nowrap;}
 .type-legend-chip .tl-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;transition:opacity .15s;}
@@ -661,6 +677,39 @@ tr:hover td{background:var(--bg);}
       </div>
       <div style="border-top:2px solid var(--line-2);">
         <table style="width:100%;"><tbody id="userTFoot"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROW 8: Daily pivot table ── -->
+  <div class="section-label" style="margin-top:8px;">Daily pivot · Account &times; Person &times; Date</div>
+  <div class="panel-grid">
+    <div class="panel p-full" style="padding:0;">
+      <div class="panel-header" style="padding:14px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:0;flex-wrap:wrap;gap:10px;">
+        <div class="panel-title-wrap">
+          <h3>VINs by Account &amp; Person</h3>
+          <div class="panel-sub" id="pivotSub">last 7 days · count of VINs per day</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <!-- Type chips multi-select -->
+          <div id="pivotTypeChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+          <!-- Date range tabs -->
+          <div class="trend-tabs" id="pivotRangeTabs">
+            <button class="trend-tab" data-pr="last_7">Last 7d</button>
+            <button class="trend-tab sel" data-pr="this_month">This month</button>
+            <button class="trend-tab" data-pr="last_month">Last month</button>
+          </div>
+          <!-- Search -->
+          <input type="text" id="pivotSearch" placeholder="Search account…" style="background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:400 13px 'Inter';color:var(--ink);outline:none;width:180px;">
+        </div>
+      </div>
+      <!-- Pivot table scrolls both ways -->
+      <div style="overflow:auto;max-height:520px;">
+        <table id="pivotTable" style="border-collapse:collapse;white-space:nowrap;font-size:12px;">
+          <thead id="pivotTHead"></thead>
+          <tbody id="pivotTBody"><tr><td style="padding:30px;text-align:center;color:var(--muted)">Loading...</td></tr></tbody>
+          <tfoot id="pivotTFoot"></tfoot>
+        </table>
       </div>
     </div>
   </div>
@@ -2373,6 +2422,187 @@ function sortAndRenderUserTable(){
 }
 
 
+// ----------------------------------------
+// DAILY PIVOT TABLE
+// ----------------------------------------
+const PIVOT_TYPES = ['DMS Download','Console Upload','Console Download','Live','Others'];
+let pivotActiveTypes = new Set(PIVOT_TYPES); // all on by default
+let pivotRange = 'this_month';
+let pivotSearch = '';
+
+function getPivotDates(){
+  const now=new Date(), tod=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const ago=n=>{const d=new Date(tod);d.setDate(d.getDate()-n);return d;};
+  let from, to;
+  if(pivotRange==='last_7'){from=ago(6);to=new Date(tod);}
+  else if(pivotRange==='this_month'){from=new Date(now.getFullYear(),now.getMonth(),1);to=new Date(tod);}
+  else if(pivotRange==='last_month'){from=new Date(now.getFullYear(),now.getMonth()-1,1);to=new Date(now.getFullYear(),now.getMonth(),0);}
+  else{from=ago(6);to=new Date(tod);}
+  // Build array of date strings
+  const dates=[];
+  const cur=new Date(from);
+  while(cur<=to){
+    dates.push(cur.toISOString().slice(0,10));
+    cur.setDate(cur.getDate()+1);
+  }
+  return {dates, from, to};
+}
+
+function renderPivotTable(){
+  const {dates, from, to} = getPivotDates();
+  const rows = window._lastFilteredRows||[];
+
+  // Render type chips
+  const chipsEl = $('pivotTypeChips');
+  if(chipsEl && !chipsEl.dataset.inited){
+    chipsEl.dataset.inited='1';
+    chipsEl.innerHTML = PIVOT_TYPES.map(t=>{
+      const on = pivotActiveTypes.has(t);
+      const col = t==='DMS Download'?'var(--amber)':t==='Console Upload'?'var(--accent)':t==='Console Download'?'var(--cyan)':t==='Live'?'var(--green)':'var(--muted)';
+      return '<div class="type-legend-chip '+(on?'active':'inactive')+'" data-ptype="'+esc(t)+'" style="color:'+col+';border-color:'+(on?col:'var(--line)')+'">'
+        +'<span class="tl-dot" style="background:'+col+'"></span>'+esc(t)+'</div>';
+    }).join('');
+    chipsEl.querySelectorAll('.type-legend-chip').forEach(chip=>{
+      chip.addEventListener('click',()=>{
+        const t=chip.dataset.ptype;
+        if(pivotActiveTypes.has(t)){if(pivotActiveTypes.size>1)pivotActiveTypes.delete(t);}
+        else pivotActiveTypes.add(t);
+        // Re-render chips state
+        chipsEl.querySelectorAll('.type-legend-chip').forEach(c2=>{
+          const on2=pivotActiveTypes.has(c2.dataset.ptype);
+          c2.classList.toggle('active',on2);
+          c2.classList.toggle('inactive',!on2);
+          const col2=c2.style.color; // keep existing color
+          c2.style.borderColor=on2?col2:'var(--line)';
+        });
+        renderPivotBody(dates, rows);
+      });
+    });
+  }
+
+  renderPivotBody(dates, rows);
+  if($('pivotSub')) $('pivotSub').textContent=
+    ({last_7:'Last 7 days',this_month:'This month',last_month:'Last month'}[pivotRange]||pivotRange)
+    +' · '+dates.length+' days · '+[...pivotActiveTypes].join(', ');
+}
+
+function renderPivotBody(dates, allRows){
+  const thead=$('pivotTHead'), tbody=$('pivotTBody'), tfoot=$('pivotTFoot');
+  if(!thead||!tbody||!tfoot) return;
+
+  const q=pivotSearch.toLowerCase();
+
+  // Filter rows to date range + active types
+  const typeSet = new Set(pivotActiveTypes);
+  // 'Others' means anything not in the known 4
+  const knownTypes=new Set(['DMS Download','Console Upload','Console Download','Live']);
+  function matchesType(r){
+    const t=r['Type']||'';
+    if(typeSet.has(t)) return true;
+    if(typeSet.has('Others') && !knownTypes.has(t)) return true;
+    return false;
+  }
+
+  const filtered = allRows.filter(r=>{
+    if(!r._date) return false;
+    const dk=r._date.toISOString().slice(0,10);
+    if(dk<dates[0]||dk>dates[dates.length-1]) return false;
+    if(!matchesType(r)) return false;
+    return true;
+  });
+
+  // Build pivot: acct -> person -> date -> count
+  const pivot={}; // acctName -> {person -> {date -> count}}
+  const acctPersonMap={}; // acctName -> Set of persons
+  for(const r of filtered){
+    const acct=(r['Account Name']||r['Enterprise ID']||'(unknown)').trim();
+    if(q && !acct.toLowerCase().includes(q)) continue;
+    const person=(r['Person Responsible']||'(unassigned)').trim();
+    const dk=r._date.toISOString().slice(0,10);
+    if(!pivot[acct]) pivot[acct]={};
+    if(!pivot[acct][person]) pivot[acct][person]={};
+    pivot[acct][person][dk]=(pivot[acct][person][dk]||0)+1;
+    if(!acctPersonMap[acct]) acctPersonMap[acct]=new Set();
+    acctPersonMap[acct].add(person);
+  }
+
+  const accts=Object.keys(pivot).sort();
+
+  // ── Header ──
+  thead.innerHTML='<tr>'
+    +'<th class="pivot-th sticky-left" colspan="2" style="min-width:310px">Account / Person</th>'
+    +dates.map(d=>{
+      const dt=new Date(d+'T00:00:00');
+      return '<th class="pivot-th date-col">'+dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+'</th>';
+    }).join('')
+    +'<th class="pivot-th date-col" style="border-left:2px solid var(--line)">Total</th>'
+    +'</tr>';
+
+  if(!accts.length){
+    tbody.innerHTML='<tr><td colspan="'+(dates.length+3)+'" style="padding:30px;text-align:center;color:var(--muted)">No data for this range / filter</td></tr>';
+    tfoot.innerHTML=''; return;
+  }
+
+  // ── Body ──
+  const dateColTotals={}; // date -> grand total
+  dates.forEach(d=>dateColTotals[d]=0);
+  let grandTotal=0;
+
+  const bodyRows=[];
+  for(const acct of accts){
+    const persons=Object.keys(pivot[acct]).sort();
+    let acctRowTotal=0;
+    const acctDateTotals={};
+    dates.forEach(d=>acctDateTotals[d]=0);
+
+    // Person sub-rows
+    const subRows=[];
+    for(const person of persons){
+      const dateMap=pivot[acct][person];
+      let rowTotal=0;
+      const cells=dates.map(d=>{
+        const v=dateMap[d]||0;
+        rowTotal+=v; acctDateTotals[d]+=v; dateColTotals[d]+=v; grandTotal+=v;
+        return v;
+      });
+      acctRowTotal+=rowTotal;
+      subRows.push({person,cells,rowTotal});
+    }
+
+    // Account row (shows totals across all persons)
+    const acctCells=dates.map(d=>acctDateTotals[d]);
+    bodyRows.push({acct,acctCells,acctRowTotal,subRows});
+  }
+
+  tbody.innerHTML=bodyRows.map(({acct,acctCells,acctRowTotal,subRows})=>{
+    const acctRow='<tr class="pivot-acct-row">'
+      +'<td class="pivot-td sticky-left acct-cell" title="'+esc(acct)+'">'+esc(acct)+'</td>'
+      +'<td class="pivot-td person-cell" style="border-right:1px solid var(--line-2)"></td>'
+      +acctCells.map(v=>'<td class="pivot-td num-cell '+(v>0?'has-val':'zero')+'">'+( v>0?v:'' )+'</td>').join('')
+      +'<td class="pivot-td total-cell">'+acctRowTotal+'</td>'
+      +'</tr>';
+
+    const subRowsHtml=subRows.map(({person,cells,rowTotal})=>
+      '<tr class="pivot-sub-row">'
+      +'<td class="pivot-td sticky-left" style="padding-left:24px;color:var(--muted);font-size:11px;min-width:180px;"></td>'
+      +'<td class="pivot-td person-cell" style="border-right:1px solid var(--line-2)">'+esc(person)+'</td>'
+      +cells.map(v=>'<td class="pivot-td num-cell '+(v>0?'has-val':'zero')+'">'+( v>0?v:'' )+'</td>').join('')
+      +'<td class="pivot-td total-cell" style="color:var(--muted)">'+rowTotal+'</td>'
+      +'</tr>'
+    ).join('');
+
+    return acctRow+subRowsHtml;
+  }).join('');
+
+  // ── Footer totals ──
+  tfoot.innerHTML='<tr class="pivot-foot">'
+    +'<td class="label-cell" colspan="2">TOTAL</td>'
+    +dates.map(d=>'<td style="color:var(--accent)">'+( dateColTotals[d]||'' )+'</td>').join('')
+    +'<td style="color:var(--accent);border-left:2px solid var(--line)">'+grandTotal+'</td>'
+    +'</tr>';
+}
+
+
 function paint(){
   const filtered=RAW_VIN.filter(passesFilters);
   const k=aggregate(filtered);
@@ -2398,6 +2628,7 @@ function paint(){
   renderAccountMovement();
   renderEntTable(k.ents);
   renderUserSummaryTable(filtered);
+  renderPivotTable();
 }
 
 function refresh(){
@@ -2696,6 +2927,17 @@ $('dmsChartTypeTabs').addEventListener('click',e=>{
 $('syncBtn').addEventListener('click',()=>loadAll());
 $('entSearch').addEventListener('input',()=>sortAndRenderEntTable());
 $('userSearch').addEventListener('input',()=>sortAndRenderUserTable());
+$('pivotRangeTabs').addEventListener('click',e=>{
+  const b=e.target.closest('.trend-tab');if(!b)return;
+  pivotRange=b.dataset.pr;
+  $('pivotRangeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
+  renderPivotTable();
+});
+$('pivotSearch').addEventListener('input',e=>{
+  pivotSearch=e.target.value;
+  const {dates}=getPivotDates();
+  renderPivotBody(dates, window._lastFilteredRows||[]);
+});
 $('entTBody').addEventListener('click',e=>{const tr=e.target.closest('tr[data-eid]');if(tr)drillEnt(tr.dataset.eid);});
 $('exportBtn').addEventListener('click',()=>{
   const rows=RAW_VIN.filter(passesFilters);
