@@ -703,12 +703,16 @@ tr:hover td{background:var(--bg);}
           <input type="text" id="pivotSearch" placeholder="Search account…" style="background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:400 13px 'Inter';color:var(--ink);outline:none;width:180px;">
         </div>
       </div>
-      <!-- Pivot table scrolls both ways -->
-      <div style="overflow:auto;max-height:520px;">
-        <table id="pivotTable" style="border-collapse:collapse;white-space:nowrap;font-size:12px;">
+      <!-- Pivot table scrolls both ways, tfoot fixed below -->
+      <div id="pivotScrollWrap" style="overflow:auto;max-height:480px;position:relative;">
+        <table id="pivotTable" style="border-collapse:collapse;white-space:nowrap;font-size:12px;table-layout:fixed;">
           <thead id="pivotTHead"></thead>
           <tbody id="pivotTBody"><tr><td style="padding:30px;text-align:center;color:var(--muted)">Loading...</td></tr></tbody>
-          <tfoot id="pivotTFoot"></tfoot>
+        </table>
+      </div>
+      <div style="border-top:2px solid var(--line-2);overflow-x:auto;" id="pivotFootWrap">
+        <table id="pivotFootTable" style="border-collapse:collapse;white-space:nowrap;font-size:12px;table-layout:fixed;">
+          <tbody id="pivotTFoot"></tbody>
         </table>
       </div>
     </div>
@@ -874,6 +878,8 @@ async function loadAll(){
     for(const r of rawRows){
       const d=parseDate(r['Date']);
       r._date=d;
+      // Store local date key to avoid UTC timezone shift (e.g. IST UTC+5:30)
+      r._dateKey=d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:null;
       r._month=d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`:null;
       // Enrich from Master
       const mid=(r['Enterprise ID']||'').trim();
@@ -1247,7 +1253,7 @@ function buildTrendBuckets(rows, range){
     }
     for(const r of rows){
       if(!r._date) continue;
-      const key=r._date.toISOString().slice(0,10);
+      const key=r._dateKey;
       const b=buckets.find(b=>b.key===key);
       if(b){
         b.vins++;
@@ -1713,7 +1719,7 @@ function renderUserChart(){
     const p=(r['Person Responsible']||'').trim();
     if(!p||p==='(unassigned)') continue;
     let bKey=null;
-    if(granularity==='day'&&r._date) bKey=r._date.toISOString().slice(0,10);
+    if(granularity==='day'&&r._date) bKey=r._dateKey;
     else if(granularity==='month'&&r._month) bKey=r._month;
     if(!bKey) continue;
     const b=buckets.find(bk=>bk.key===bKey);
@@ -2502,38 +2508,49 @@ function renderPivotBody(dates, allRows){
 
   const filtered = allRows.filter(r=>{
     if(!r._date) return false;
-    const dk=r._date.toISOString().slice(0,10);
-    if(dk<dates[0]||dk>dates[dates.length-1]) return false;
+    const dk=r._dateKey;
+    if(!dk||dk<dates[0]||dk>dates[dates.length-1]) return false;
     return matchesType(r);
   });
 
-  // Build pivot: acct -> person -> date -> count
   const pivot={};
   for(const r of filtered){
     const acct=(r['Account Name']||r['Enterprise ID']||'(unknown)').trim();
     if(q && !acct.toLowerCase().includes(q)) continue;
     const person=(r['Person Responsible']||'(unassigned)').trim();
-    const dk=r._date.toISOString().slice(0,10);
+    const dk=r._dateKey;
     if(!pivot[acct]) pivot[acct]={};
     if(!pivot[acct][person]) pivot[acct][person]={};
     pivot[acct][person][dk]=(pivot[acct][person][dk]||0)+1;
   }
 
   const accts=Object.keys(pivot).sort();
-  const COL_W=70; // px per date column
-  const ACCT_W=200, PERSON_W=140, NUM_W=50, TOT_W=72;
+  const NUM_W=44, ACCT_W=200, PERSON_W=130, COL_W=68, TOT_W=72;
+  const totalWidth=NUM_W+ACCT_W+PERSON_W+(dates.length*COL_W)+TOT_W;
+
+  // Match footer table width to main table so columns align
+  const mainTable=$('pivotTable'), footTable=$('pivotFootTable');
+  if(mainTable) mainTable.style.width=totalWidth+'px';
+  if(footTable) footTable.style.width=totalWidth+'px';
+
+  // Sync horizontal scroll: scroll wrap drives footer wrap
+  const sw=$('pivotScrollWrap'), fw=$('pivotFootWrap');
+  if(sw&&fw&&!sw._syncDone){
+    sw._syncDone=true;
+    sw.addEventListener('scroll',()=>{fw.scrollLeft=sw.scrollLeft;});
+  }
 
   // ── Header ──
   thead.innerHTML='<tr>'
-    +'<th class="pivot-th sticky-left" style="width:'+NUM_W+'px;min-width:'+NUM_W+'px;text-align:center;">#</th>'
-    +'<th class="pivot-th sticky-left" style="width:'+ACCT_W+'px;min-width:'+ACCT_W+'px;left:'+NUM_W+'px;">Account</th>'
-    +'<th class="pivot-th" style="width:'+PERSON_W+'px;min-width:'+PERSON_W+'px;">Person</th>'
+    +'<th class="pivot-th sticky-left" style="width:'+NUM_W+'px;text-align:center;">#</th>'
+    +'<th class="pivot-th sticky-left" style="width:'+ACCT_W+'px;left:'+NUM_W+'px;">Account</th>'
+    +'<th class="pivot-th" style="width:'+PERSON_W+'px;">Person</th>'
     +dates.map(d=>{
       const dt=new Date(d+'T00:00:00');
-      return '<th class="pivot-th date-col" style="width:'+COL_W+'px;min-width:'+COL_W+'px;">'
+      return '<th class="pivot-th date-col" style="width:'+COL_W+'px;">'
         +dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+'</th>';
     }).join('')
-    +'<th class="pivot-th date-col" style="width:'+TOT_W+'px;min-width:'+TOT_W+'px;border-left:2px solid var(--line);color:var(--accent);">Total</th>'
+    +'<th class="pivot-th" style="width:'+TOT_W+'px;border-left:2px solid var(--line);color:var(--accent);text-align:right;padding-right:10px;">Total</th>'
     +'</tr>';
 
   if(!accts.length){
@@ -2541,72 +2558,69 @@ function renderPivotBody(dates, allRows){
     tfoot.innerHTML=''; return;
   }
 
-  // ── Build body rows ──
+  // ── Build ──
   const dateColTotals={};
   dates.forEach(d=>dateColTotals[d]=0);
   let grandTotal=0;
-
   const bodyRows=[];
+
   for(const acct of accts){
     const persons=Object.keys(pivot[acct]).sort();
     const acctDateTotals={};
     dates.forEach(d=>acctDateTotals[d]=0);
     const subRows=[];
     for(const person of persons){
-      const dateMap=pivot[acct][person];
-      let rowTotal=0;
+      const dm=pivot[acct][person];
+      let rt=0;
       const cells=dates.map(d=>{
-        const v=dateMap[d]||0;
-        rowTotal+=v; acctDateTotals[d]+=v; dateColTotals[d]+=v; grandTotal+=v;
+        const v=dm[d]||0;
+        rt+=v; acctDateTotals[d]+=v; dateColTotals[d]+=v; grandTotal+=v;
         return v;
       });
-      subRows.push({person,cells,rowTotal});
+      subRows.push({person,cells,rowTotal:rt});
     }
     const acctCells=dates.map(d=>acctDateTotals[d]);
     const acctRowTotal=subRows.reduce((s,r)=>s+r.rowTotal,0);
     bodyRows.push({acct,acctCells,acctRowTotal,subRows});
   }
 
-  // ── Render ──
+  // ── Render body ──
   let rowNum=0;
   tbody.innerHTML=bodyRows.map(({acct,acctCells,acctRowTotal,subRows})=>{
     rowNum++;
-    const singlePerson=subRows.length===1;
-    const personLabel=singlePerson?subRows[0].person:'';
+    const single=subRows.length===1;
 
-    // Main row: acct + person (if single) + date totals + row total
     const mainRow='<tr class="pivot-acct-row">'
       +'<td class="pivot-td sticky-left" style="width:'+NUM_W+'px;text-align:center;color:var(--muted);font-size:11px;">'+rowNum+'</td>'
-      +'<td class="pivot-td sticky-left acct-cell" style="left:'+NUM_W+'px;" title="'+esc(acct)+'">'+esc(acct)+'</td>'
-      +'<td class="pivot-td person-cell">'+esc(personLabel)+'</td>'
-      +(singlePerson
-        ? subRows[0].cells.map(v=>'<td class="pivot-td num-cell '+(v>0?'has-val':'zero')+'">'+(v>0?v:'')+'</td>').join('')
-        : acctCells.map(v=>'<td class="pivot-td num-cell '+(v>0?'has-val':'zero')+'">'+(v>0?v:'')+'</td>').join('')
+      +'<td class="pivot-td sticky-left acct-cell" style="width:'+ACCT_W+'px;left:'+NUM_W+'px;" title="'+esc(acct)+'">'+esc(acct)+'</td>'
+      +'<td class="pivot-td person-cell" style="width:'+PERSON_W+'px;">'+esc(single?subRows[0].person:'')+'</td>'
+      +(single
+        ? subRows[0].cells.map(v=>'<td class="pivot-td num-cell '+(v>0?'has-val':'zero')+'" style="width:'+COL_W+'px;text-align:right;padding-right:10px;">'+(v>0?v:'')+'</td>').join('')
+        : acctCells.map(v=>'<td class="pivot-td num-cell '+(v>0?'has-val':'zero')+'" style="width:'+COL_W+'px;text-align:right;padding-right:10px;">'+(v>0?v:'')+'</td>').join('')
       )
-      +'<td class="pivot-td total-cell">'+acctRowTotal+'</td>'
+      +'<td style="width:'+TOT_W+'px;padding:7px 10px;border-left:2px solid var(--line);border-bottom:1px solid var(--line);text-align:right;font-weight:700;color:var(--accent);">'+acctRowTotal+'</td>'
       +'</tr>';
 
-    // Sub-rows only when multiple persons
-    const subHtml=singlePerson?'':subRows.map(({person,cells,rowTotal})=>
+    const subHtml=single?'':subRows.map(({person,cells,rowTotal})=>
       '<tr class="pivot-sub-row">'
       +'<td class="pivot-td sticky-left" style="width:'+NUM_W+'px;"></td>'
-      +'<td class="pivot-td sticky-left" style="left:'+NUM_W+'px;padding-left:20px;color:var(--muted);font-size:11px;font-style:italic;"></td>'
-      +'<td class="pivot-td person-cell" style="color:var(--muted);">'+esc(person)+'</td>'
-      +cells.map(v=>'<td class="pivot-td num-cell '+(v>0?'has-val':'zero')+'">'+(v>0?v:'')+'</td>').join('')
-      +'<td class="pivot-td total-cell" style="color:var(--muted);">'+rowTotal+'</td>'
+      +'<td class="pivot-td sticky-left" style="width:'+ACCT_W+'px;left:'+NUM_W+'px;padding-left:18px;color:var(--muted);font-size:11px;"></td>'
+      +'<td class="pivot-td" style="width:'+PERSON_W+'px;color:var(--muted);font-size:12px;">'+esc(person)+'</td>'
+      +cells.map(v=>'<td class="pivot-td num-cell '+(v>0?'has-val':'zero')+'" style="width:'+COL_W+'px;text-align:right;padding-right:10px;">'+(v>0?v:'')+'</td>').join('')
+      +'<td style="width:'+TOT_W+'px;padding:7px 10px;border-left:2px solid var(--line);border-bottom:1px solid var(--line);text-align:right;color:var(--muted);">'+rowTotal+'</td>'
       +'</tr>'
     ).join('');
 
     return mainRow+subHtml;
   }).join('');
 
-  // ── Footer ──
-  tfoot.innerHTML='<tr class="pivot-foot">'
-    +'<td class="label-cell" style="text-align:center;">&Sigma;</td>'
-    +'<td class="label-cell">TOTAL ('+accts.length+' accts)</td>'
-    +'<td class="label-cell"></td>'
-    +dates.map(d=>'<td style="color:var(--accent);">'+(dateColTotals[d]>0?dateColTotals[d]:'')+'</td>').join('')
-    +'<td style="color:var(--accent);border-left:2px solid var(--line);font-weight:700;">'+grandTotal+'</td>'
+  // ── Footer (separate fixed table, widths match main) ──
+  tfoot.innerHTML='<tr style="background:var(--surface-2);font-weight:600;">'
+    +'<td style="width:'+NUM_W+'px;text-align:center;padding:9px 6px;border-right:1px solid var(--line-2);color:var(--muted);font-size:13px;">&Sigma;</td>'
+    +'<td style="width:'+ACCT_W+'px;padding:9px 10px;border-right:1px solid var(--line-2);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em;">TOTAL ('+accts.length+')</td>'
+    +'<td style="width:'+PERSON_W+'px;padding:9px 10px;border-right:1px solid var(--line-2);"></td>'
+    +dates.map(d=>'<td style="width:'+COL_W+'px;text-align:right;padding:9px 10px;border-right:1px solid var(--line-2);color:var(--accent);">'+(dateColTotals[d]>0?dateColTotals[d]:'')+'</td>').join('')
+    +'<td style="width:'+TOT_W+'px;text-align:right;padding:9px 10px;border-left:2px solid var(--line);color:var(--accent);font-size:14px;font-weight:700;">'+grandTotal+'</td>'
     +'</tr>';
 }
 
