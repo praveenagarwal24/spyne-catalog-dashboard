@@ -544,54 +544,59 @@ tr:hover td{background:var(--bg);}
 
 
   <!-- ── ROW 5: DMS Analytics ── -->
-  <div class="section-label" style="margin-top:8px;">DMS Automation Insights</div>
+  <div class="section-label" style="margin-top:8px;">DMS Analytics</div>
   <div class="panel-grid">
-    <div class="panel p-half">
-      <div class="panel-header">
-        <div class="panel-title-wrap">
-          <h3>Automation rate by DMS</h3>
-          <div class="panel-sub">% VINs automated (non-Live) &middot; green&nbsp;&ge;80% &middot; amber&nbsp;&ge;50% &middot; red&nbsp;&lt;50%</div>
-        </div>
-      </div>
-      <div class="chart-wrap tall"><canvas id="cDmsAuto"></canvas></div>
-    </div>
-    <div class="panel p-half">
-      <div class="panel-header">
-        <div class="panel-title-wrap">
-          <h3>Volume &amp; flow split</h3>
-          <div class="panel-sub" id="dmsVolSub">Green=automated &middot; Amber=live/manual</div>
-        </div>
-        <div class="trend-tabs" id="dmsRangeTabs">
-          <button class="trend-tab" data-dr="this_month">This month</button>
-          <button class="trend-tab" data-dr="last_month">Last month</button>
-          <button class="trend-tab sel" data-dr="all">All time</button>
-        </div>
-      </div>
-      <div class="chart-wrap tall"><canvas id="cDmsVol"></canvas></div>
-    </div>
+
+    <!-- VINs per DMS MOM trend -->
     <div class="panel p-full">
       <div class="panel-header">
         <div class="panel-title-wrap">
-          <h3>Automation trend MOM</h3>
-          <div class="panel-sub" id="dmsAutoTrendSub">Overall % automated per month + top 3 DMS</div>
+          <h3>VINs per DMS &mdash; MOM trend</h3>
+          <div class="panel-sub" id="dmsTrendSub">which DMS is growing or declining &middot; click legend to show/hide</div>
         </div>
-        <div class="trend-tabs" id="dmsChartTypeTabs" style="display:none">
-          <button class="trend-tab sel" data-dct="bar">Bar</button>
-          <button class="trend-tab" data-dct="line">Curve</button>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div class="trend-tabs" id="dmsRangeTabs">
+            <button class="trend-tab" data-dr="last_3_months">Last 3 months</button>
+            <button class="trend-tab" data-dr="last_6_months">Last 6 months</button>
+            <button class="trend-tab sel" data-dr="all">All time</button>
+          </div>
+          <div class="trend-tabs" id="dmsChartTypeTabs">
+            <button class="trend-tab sel" data-dct="line">Curve</button>
+            <button class="trend-tab" data-dct="bar">Bar</button>
+          </div>
         </div>
       </div>
-      <div class="chart-wrap"><canvas id="cDmsTrend"></canvas></div>
-      <div id="dmsLegend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;justify-content:center"></div>
+      <div class="chart-wrap tall"><canvas id="cDmsTrend"></canvas></div>
+      <div id="dmsLegend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;justify-content:center;"></div>
     </div>
-    <div class="panel p-full" style="padding:0">
-      <div class="panel-header" style="padding:14px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:0">
-        <div class="panel-title-wrap"><h3>DMS scorecard</h3><div class="panel-sub" id="dmsTableSub">sorted by automation rate</div></div>
+
+    <!-- DMS type breakdown -->
+    <div class="panel p-half">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>DMS &times; Type breakdown</h3>
+          <div class="panel-sub">Live &middot; Console Upload &middot; Console Download &middot; DMS Download per DMS</div>
+        </div>
       </div>
-      <div class="table-scroll" style="max-height:300px">
-        <table><thead id="dmsTHead"></thead>
-        <tbody id="dmsTBody"><tr><td colspan="7" style="padding:30px;text-align:center;color:var(--muted)">Loading...</td></tr></tbody></table>
+      <div class="chart-wrap tall"><canvas id="cDmsType"></canvas></div>
+    </div>
+
+    <!-- Enterprise per DMS table -->
+    <div class="panel p-half" style="padding:0;">
+      <div class="panel-header" style="padding:14px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:0;">
+        <div class="panel-title-wrap">
+          <h3>DMS summary</h3>
+          <div class="panel-sub" id="dmsTableSub">VINs &middot; enterprises &middot; rooftops per DMS</div>
+        </div>
+      </div>
+      <div class="table-scroll" style="max-height:360px;">
+        <table>
+          <thead id="dmsTHead"></thead>
+          <tbody id="dmsTBody"><tr><td colspan="6" style="padding:30px;text-align:center;color:var(--muted)">Loading...</td></tr></tbody>
+        </table>
       </div>
     </div>
+
   </div>
 
   <!-- ── ROW 6: Enterprise deep-dive table ── -->
@@ -1901,232 +1906,210 @@ const DMS_COLORS = ['#6b9eff','#4ade80','#f5c265','#c084fc','#38bdf8','#f87171',
 
 function renderDmsAnalytics(){
   var rows = window._lastFilteredRows||[];
+  if(!rows.length) return;
   var PAL = getPal();
+
+  // Aggregate per DMS
   var dmsMap = {};
   for(var i=0;i<rows.length;i++){
     var r=rows[i];
     var dms=(r['DMS']||'').trim(); if(!dms) continue;
-    if(!dmsMap[dms]) dmsMap[dms]={v:0,a:0,l:0,img:0,ents:{}};
-    dmsMap[dms].v++;
-    dmsMap[dms].img+=parseInt(r['Image Count'])||0;
-    dmsMap[dms].ents[r['Enterprise ID']||'']=1;
-    if(r['Type']==='Live') dmsMap[dms].l++; else dmsMap[dms].a++;
+    if(!dmsMap[dms]) dmsMap[dms]={vins:0,images:0,ents:{},teams:{},typeMap:{}};
+    dmsMap[dms].vins++;
+    dmsMap[dms].images+=parseInt(r['Image Count'])||0;
+    if(r['Enterprise ID']) dmsMap[dms].ents[r['Enterprise ID']]=1;
+    if(r['Team ID'])        dmsMap[dms].teams[r['Team ID']]=1;
+    var t=r['Type']||'Unknown';
+    dmsMap[dms].typeMap[t]=(dmsMap[dms].typeMap[t]||0)+1;
   }
   var dmsList=Object.keys(dmsMap).map(function(k){
     var v=dmsMap[k];
-    return {name:k,vins:v.v,auto:v.a,live:v.l,images:v.img,
-      ents:Object.keys(v.ents).length,
-      rate:v.v?+(v.a/v.v*100).toFixed(1):0};
+    return {name:k, vins:v.vins, images:v.images,
+      ents:Object.keys(v.ents).length, rooftops:Object.keys(v.teams).length,
+      typeMap:v.typeMap};
   }).sort(function(a,b){return b.vins-a.vins;});
   if(!dmsList.length) return;
 
-  function hexRgba(hex,a){
+  function hr(hex,a){
     var h=String(hex).replace('#','');
-    if(h.length!==6) return 'rgba(107,158,255,'+a+')';
+    if(h.length!==6)return 'rgba(107,158,255,'+a+')';
     return 'rgba('+parseInt(h.slice(0,2),16)+','+parseInt(h.slice(2,4),16)+','+parseInt(h.slice(4,6),16)+','+a+')';
   }
 
-  // 1. Automation rate horizontal bar
-  killChart('cDmsAuto');
-  if($('cDmsAuto')){
-    var sorted=[].concat(dmsList).sort(function(a,b){return b.rate-a.rate;});
-    var bColors=sorted.map(function(d){
-      return d.rate>=80?hexRgba(PAL.green,.82):d.rate>=50?hexRgba(PAL.amber,.82):hexRgba(PAL.red,.82);
-    });
-    charts.cDmsAuto=new Chart($('cDmsAuto'),{
-      type:'bar',plugins:[ChartDataLabels],
-      data:{labels:sorted.map(function(d){return d.name;}),datasets:[
-        {label:'Auto %',data:sorted.map(function(d){return d.rate;}),
-         backgroundColor:bColors,borderWidth:0,borderRadius:4,maxBarThickness:26,
-         datalabels:{anchor:'end',align:'end',clamp:true,color:PAL.muted,
-           font:{family:"'JetBrains Mono',monospace",size:10,weight:'700'},
-           formatter:function(v){return v+'%';}}},
-        {label:'Goal',data:sorted.map(function(){return 100;}),type:'line',
-         backgroundColor:'transparent',borderColor:hexRgba(PAL.muted,.3),
-         borderWidth:1,pointRadius:0,datalabels:{display:false}},
-      ]},
-      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-        layout:{padding:{right:52,top:4}},
-        plugins:{legend:{display:false},datalabels:{display:true},
-          tooltip:{backgroundColor:isDark?'#1c1c1f':'#fff',
-            titleColor:isDark?'#f0efe9':'#0b0b0c',
-            bodyColor:isDark?'#b0b0b8':'#404045',
-            borderColor:isDark?'#2a2a2f':'#e8e6df',borderWidth:1,
-            padding:10,cornerRadius:8,
-            callbacks:{label:function(ctx){
-              if(ctx.dataset.label==='Goal') return '';
-              var d=sorted[ctx.dataIndex];
-              return 'Auto: '+d.rate+'% ('+d.auto+' auto, '+d.live+' live)';
-            }}}},
-        scales:{
-          x:{min:0,max:108,grid:{color:PAL.line,drawBorder:false},
-             ticks:{font:{size:10},color:PAL.muted,callback:function(v){return v+'%';}}},
-          y:{grid:{display:false},ticks:{font:{size:11},color:PAL.muted}}}}
-    });
-  }
-
-  // 2. Volume + flow split (filtered by dmsRange)
-  killChart('cDmsVol');
-  if($('cDmsVol')){
-    var now=new Date(),tod=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-    var rFrom=null,rTo=null;
-    if(dmsRange==='this_month'){rFrom=new Date(now.getFullYear(),now.getMonth(),1);rTo=new Date(tod);}
-    else if(dmsRange==='last_month'){rFrom=new Date(now.getFullYear(),now.getMonth()-1,1);rTo=new Date(now.getFullYear(),now.getMonth(),0);}
-    var rm={};
-    for(var i=0;i<rows.length;i++){
-      var r=rows[i]; var dms=(r['DMS']||'').trim(); if(!dms) continue;
-      if(rFrom&&r._date&&(r._date<rFrom||r._date>new Date(rTo.getTime()+86399999))) continue;
-      if(!rm[dms]) rm[dms]={a:0,l:0};
-      if(r['Type']==='Live') rm[dms].l++; else rm[dms].a++;
-    }
-    var vList=Object.keys(rm).map(function(k){return {name:k,a:rm[k].a,l:rm[k].l};})
-      .sort(function(a,b){return (b.a+b.l)-(a.a+a.l);});
-    charts.cDmsVol=new Chart($('cDmsVol'),{
-      type:'bar',plugins:[ChartDataLabels],
-      data:{labels:vList.map(function(d){return d.name;}),datasets:[
-        {label:'Automated',data:vList.map(function(d){return d.a;}),
-         backgroundColor:hexRgba(PAL.green,.82),borderWidth:0,maxBarThickness:32,
-         datalabels:{anchor:'center',align:'center',color:'#fff',
-           font:{family:"'JetBrains Mono',monospace",size:9,weight:'600'},
-           formatter:function(v){return v>10?numK(v)&& v>10?numK(v):''||'':''&& ''||'';}}},
-        {label:'Live (Manual)',data:vList.map(function(d){return d.l;}),
-         backgroundColor:hexRgba(PAL.amber,.82),borderWidth:0,maxBarThickness:32,
-         datalabels:{anchor:'center',align:'center',color:'#fff',
-           font:{family:"'JetBrains Mono',monospace",size:9,weight:'600'},
-           formatter:function(v){return v>10?numK(v):'';}}}
-      ]},
-      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-        interaction:{mode:'index',intersect:false},
-        layout:{padding:{right:12,top:4}},
-        plugins:{legend:{display:true,position:'bottom',
-            labels:{font:{size:11},color:PAL.muted,boxWidth:12,padding:14}},
-          datalabels:{display:true},
-          tooltip:{backgroundColor:isDark?'#1c1c1f':'#fff',
-            titleColor:isDark?'#f0efe9':'#0b0b0c',
-            bodyColor:isDark?'#b0b0b8':'#404045',
-            borderColor:isDark?'#2a2a2f':'#e8e6df',borderWidth:1,
-            padding:10,cornerRadius:8,
-            callbacks:{label:function(ctx){return ctx.dataset.label+': '+ctx.parsed.x.toLocaleString();},
-              afterBody:function(items){
-                var d=vList[items[0].dataIndex];
-                var t=d.a+d.l;
-                return['Total: '+t.toLocaleString(),'Rate: '+(t?+(d.a/t*100).toFixed(1):0)+'%'];
-              }}}},
-        scales:{
-          x:{stacked:true,grid:{color:PAL.line,drawBorder:false},beginAtZero:true,
-             ticks:{font:{size:10},color:PAL.muted,callback:function(v){return numK(v);}}},
-          y:{stacked:true,grid:{display:false},ticks:{font:{size:11},color:PAL.muted}}}}
-    });
-  }
-
-  // 3. Automation trend MOM
+  // ── 1. VINs per DMS MOM trend ──
   killChart('cDmsTrend');
   if($('cDmsTrend')){
-    var allRows=window._lastFilteredRows||[];
-    var momMap={};
+    // Build month buckets using MONTHS_ORDER
+    var allRows = window._lastFilteredRows||[];
+    var dmsMon = {}; // dms -> {month -> count}
     for(var i=0;i<allRows.length;i++){
       var r=allRows[i]; if(!r._month) continue;
-      if(!momMap[r._month]) momMap[r._month]={t:0,a:0};
-      momMap[r._month].t++;
-      if(r['Type']!=='Live') momMap[r._month].a++;
+      var dms=(r['DMS']||'').trim(); if(!dms) continue;
+      if(!dmsMon[dms]) dmsMon[dms]={};
+      dmsMon[dms][r._month]=(dmsMon[dms][r._month]||0)+1;
     }
-    var sortedMk=MONTHS_ORDER.filter(function(mk){return !!momMap[mk];});
-    if(sortedMk.length){
-      var labels=mkMonthLabels(sortedMk);
-      var overallRate=sortedMk.map(function(mk){return momMap[mk].t?+(momMap[mk].a/momMap[mk].t*100).toFixed(1):0;});
-      var top3=dmsList.slice(0,3);
-      var dmsMonMap={};
-      for(var i=0;i<allRows.length;i++){
-        var r=allRows[i]; if(!r._month) continue;
-        var dms=(r['DMS']||'').trim();
-        var inTop=false; for(var j=0;j<top3.length;j++){if(top3[j].name===dms){inTop=true;break;}}
-        if(!inTop) continue;
-        if(!dmsMonMap[dms]) dmsMonMap[dms]={};
-        if(!dmsMonMap[dms][r._month]) dmsMonMap[dms][r._month]={t:0,a:0};
-        dmsMonMap[dms][r._month].t++;
-        if(r['Type']!=='Live') dmsMonMap[dms][r._month].a++;
+    // Filter months by dmsRange
+    var now=new Date();
+    var cutoff=null;
+    if(dmsRange==='last_3_months') cutoff=new Date(now.getFullYear(),now.getMonth()-3,1);
+    else if(dmsRange==='last_6_months') cutoff=new Date(now.getFullYear(),now.getMonth()-6,1);
+    var visibleMk=MONTHS_ORDER.filter(function(mk){
+      if(!cutoff) return true;
+      var p=mk.split('-'); return new Date(+p[0],+p[1]-1,1)>=cutoff;
+    });
+    if(!visibleMk.length) visibleMk=MONTHS_ORDER.slice(-6);
+    var labels=mkMonthLabels(visibleMk);
+    var isLine=dmsChartMode==='line';
+    var ptBdr=isDark?PAL.ink:'#fff';
+    var datasets=dmsList.map(function(d,i){
+      var col=DMS_COLORS[i%DMS_COLORS.length];
+      var hidden=dmsHidden.has(d.name);
+      var data=visibleMk.map(function(mk){return dmsMon[d.name]&&dmsMon[d.name][mk]?dmsMon[d.name][mk]:0;});
+      return {
+        label:d.name, data:data, hidden:hidden,
+        borderColor:col,
+        backgroundColor:isLine?'transparent':hr(col,hidden?0.2:0.78),
+        borderWidth:isLine?2:1, borderRadius:isLine?0:4, maxBarThickness:18,
+        tension:0.35,
+        pointRadius:isLine?3:0, pointHoverRadius:isLine?6:0,
+        pointBackgroundColor:col, pointBorderColor:ptBdr,
+        fill:false, spanGaps:true,
+        datalabels:{
+          display:!hidden, anchor:'end', align:isLine?'top':'end', clamp:true,
+          color:PAL.muted,
+          font:{family:"'JetBrains Mono',monospace",size:9,weight:'600'},
+          formatter:function(v){return v>0?numK(v):'';}
+        }
+      };
+    });
+    charts.cDmsTrend=new Chart($('cDmsTrend'),{
+      type:isLine?'line':'bar', plugins:[ChartDataLabels],
+      data:{labels:labels, datasets:datasets},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        layout:{padding:{top:22,left:4,right:4}},
+        plugins:{
+          legend:{display:false},
+          datalabels:{display:true},
+          tooltip:{
+            backgroundColor:isDark?'#1c1c1f':'#fff',
+            titleColor:isDark?'#f0efe9':'#0b0b0c',
+            bodyColor:isDark?'#b0b0b8':'#404045',
+            borderColor:isDark?'#2a2a2f':'#e8e6df', borderWidth:1,
+            padding:10, cornerRadius:8, displayColors:true, boxPadding:4,
+            filter:function(item){return !datasets[item.datasetIndex].hidden;},
+            callbacks:{label:function(ctx){return ctx.dataset.label+': '+ctx.parsed.y.toLocaleString();}}
+          }
+        },
+        scales:{
+          x:{grid:{display:false}, ticks:{font:{size:10},color:PAL.muted,maxRotation:0,autoSkip:true}},
+          y:{grid:{color:PAL.line,drawBorder:false}, beginAtZero:true,
+             ticks:{font:{size:10},color:PAL.muted,precision:0,padding:6,callback:function(v){return numK(v);}}}
+        }
       }
-      var ptBdr=isDark?PAL.ink:'#fff';
-      var ctx=$('cDmsTrend').getContext('2d');
-      var grd=ctx.createLinearGradient(0,0,0,200);
-      grd.addColorStop(0,hexRgba(PAL.green,.25)); grd.addColorStop(1,hexRgba(PAL.green,0));
-      var datasets=[
-        {label:'Overall %',data:overallRate,borderColor:PAL.green,backgroundColor:grd,
-         fill:true,borderWidth:2.5,tension:0.35,pointRadius:4,pointHoverRadius:7,
-         pointBackgroundColor:PAL.green,pointBorderColor:ptBdr,
-         datalabels:{anchor:'end',align:'top',clamp:true,color:PAL.green,
-           font:{family:"'JetBrains Mono',monospace",size:10,weight:'700'},
-           formatter:function(v){return v+'%';}}}
-      ];
-      for(var i=0;i<top3.length;i++){
-        var d=top3[i];
+    });
+    // Clickable legend chips
+    var leg=$('dmsLegend');
+    if(leg){
+      leg.innerHTML=dmsList.map(function(d,i){
         var col=DMS_COLORS[i%DMS_COLORS.length];
-        var data=sortedMk.map(function(mk){
-          return dmsMonMap[d.name]&&dmsMonMap[d.name][mk]&&dmsMonMap[d.name][mk].t?
-            +(dmsMonMap[d.name][mk].a/dmsMonMap[d.name][mk].t*100).toFixed(1):null;
+        var hidden=dmsHidden.has(d.name);
+        return '<div class="type-legend-chip '+(hidden?'inactive':'active')+'" data-dms="'+esc(d.name)+'" style="color:'+col+';border-color:'+(hidden?'var(--line)':col)+'">'
+          +'<span class="tl-dot" style="background:'+col+'"></span>'+esc(d.name)+'</div>';
+      }).join('');
+      leg.querySelectorAll('.type-legend-chip').forEach(function(chip){
+        chip.addEventListener('click',function(){
+          var d=chip.dataset.dms;
+          var isHidden=dmsHidden.has(d);
+          var visibleCount=dmsList.filter(function(x){return !dmsHidden.has(x.name);}).length;
+          if(!isHidden&&visibleCount<=1) return;
+          if(isHidden) dmsHidden.delete(d); else dmsHidden.add(d);
+          renderDmsAnalytics();
         });
-        datasets.push({label:d.name,data:data,borderColor:col,backgroundColor:'transparent',
-          fill:false,borderWidth:1.5,tension:0.35,pointRadius:2.5,pointHoverRadius:5,
-          pointBackgroundColor:col,pointBorderColor:ptBdr,spanGaps:false,
-          datalabels:{display:false}});
-      }
-      charts.cDmsTrend=new Chart($('cDmsTrend'),{
-        type:'line',plugins:[ChartDataLabels],data:{labels:labels,datasets:datasets},
-        options:{responsive:true,maintainAspectRatio:false,
-          interaction:{mode:'index',intersect:false},
-          layout:{padding:{top:20,right:8}},
-          plugins:{legend:{display:false},datalabels:{display:true},
-            tooltip:{backgroundColor:isDark?'#1c1c1f':'#fff',
-              titleColor:isDark?'#f0efe9':'#0b0b0c',
-              bodyColor:isDark?'#b0b0b8':'#404045',
-              borderColor:isDark?'#2a2a2f':'#e8e6df',borderWidth:1,
-              padding:10,cornerRadius:8,
-              callbacks:{label:function(ctx){return ctx.dataset.label+': '+ctx.parsed.y+'%';}}}},
-          scales:{
-            x:{grid:{display:false},ticks:{font:{size:11},color:PAL.muted,autoSkip:true,maxRotation:0}},
-            y:{min:0,max:108,grid:{color:PAL.line,drawBorder:false},
-               ticks:{font:{size:11},color:PAL.muted,callback:function(v){return v+'%';}}}}}
       });
-      var leg=$('dmsLegend');
-      if(leg){
-        var legItems=[{name:'Overall %',col:PAL.green}];
-        for(var i=0;i<top3.length;i++) legItems.push({name:top3[i].name,col:DMS_COLORS[i%DMS_COLORS.length]});
-        leg.innerHTML=legItems.map(function(x){
-          return '<div class="trend-legend-item"><span class="ldot" style="background:'+x.col+'"></span><span>'+esc(x.name)+'</span></div>';
-        }).join('');
-      }
     }
+    var rl={'last_3_months':'Last 3 months','last_6_months':'Last 6 months','all':'All time'};
+    if($('dmsTrendSub')) $('dmsTrendSub').textContent=(rl[dmsRange]||dmsRange)+' - '+visibleMk.length+' months - '+(isLine?'curves':'bars')+' - click legend to show/hide';
   }
 
-  // 4. Scorecard table
+  // ── 2. DMS x Type breakdown (horizontal stacked) ──
+  killChart('cDmsType');
+  if($('cDmsType')&&dmsList.length){
+    var TYPE_ORDER=['DMS Download','Console Upload','Console Download','Live','No Data Available'];
+    var TYPE_COLORS={
+      'Live':PAL.green, 'Console Upload':PAL.accent,
+      'Console Download':PAL.cyan, 'DMS Download':PAL.amber,
+      'No Data Available':PAL.muted
+    };
+    var allTypeSet={};
+    dmsList.forEach(function(d){Object.keys(d.typeMap).forEach(function(t){allTypeSet[t]=1;});});
+    var typeList=TYPE_ORDER.filter(function(t){return allTypeSet[t];});
+    Object.keys(allTypeSet).forEach(function(t){if(TYPE_ORDER.indexOf(t)<0) typeList.push(t);});
+    var datasets=typeList.map(function(t){
+      var col=TYPE_COLORS[t]||PAL.red;
+      return {
+        label:t,
+        data:dmsList.map(function(d){return d.typeMap[t]||0;}),
+        backgroundColor:hr(col,.82), borderWidth:0,
+        datalabels:{
+          display:true, anchor:'center', align:'center', clamp:true,
+          color:'#fff', font:{family:"'JetBrains Mono',monospace",size:9,weight:'600'},
+          formatter:function(v){return v>0?numK(v):'';}
+        }
+      };
+    });
+    charts.cDmsType=new Chart($('cDmsType'),{
+      type:'bar', plugins:[ChartDataLabels],
+      data:{labels:dmsList.map(function(d){return d.name;}), datasets:datasets},
+      options:{
+        indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        layout:{padding:{right:8,top:4}},
+        plugins:{
+          legend:{display:true, position:'bottom',
+            labels:{font:{size:11},color:PAL.muted,boxWidth:12,padding:14}},
+          datalabels:{display:true},
+          tooltip:{
+            backgroundColor:isDark?'#1c1c1f':'#fff',
+            titleColor:isDark?'#f0efe9':'#0b0b0c',
+            bodyColor:isDark?'#b0b0b8':'#404045',
+            borderColor:isDark?'#2a2a2f':'#e8e6df', borderWidth:1,
+            padding:10, cornerRadius:8, displayColors:true, boxPadding:4,
+            callbacks:{label:function(ctx){return ctx.dataset.label+': '+ctx.parsed.x.toLocaleString();}}
+          }
+        },
+        scales:{
+          x:{stacked:true, grid:{color:PAL.line,drawBorder:false}, beginAtZero:true,
+             ticks:{font:{size:10},color:PAL.muted,callback:function(v){return numK(v);}}},
+          y:{stacked:true, grid:{display:false}, ticks:{font:{size:11},color:PAL.muted}}
+        }
+      }
+    });
+  }
+
+  // ── 3. Summary table ──
   if($('dmsTHead')&&$('dmsTBody')){
-    var sorted=[].concat(dmsList).sort(function(a,b){return b.rate-a.rate;});
-    $('dmsTHead').innerHTML='<tr><th>DMS</th><th class="num">Enterprises</th><th class="num">Total VINs</th><th class="num">Automated</th><th class="num">Live (Manual)</th><th>Auto Rate</th><th class="num">Avg Imgs/VIN</th></tr>';
+    var sorted=[].concat(dmsList).sort(function(a,b){return b.vins-a.vins;});
+    $('dmsTHead').innerHTML='<tr><th>DMS</th><th class="num">Enterprises</th><th class="num">Rooftops</th><th class="num">Total VINs</th><th class="num">Images</th><th class="num">Live</th><th class="num">DMS Download</th></tr>';
     $('dmsTBody').innerHTML=sorted.map(function(d){
-      var g='var(--green)',am='var(--amber)';
-      var rc=d.rate>=80?g:d.rate>=50?am:'var(--red)';
-      var avg=d.vins?+(d.images/d.vins).toFixed(1):0;
-      var bar='<div style="display:flex;align-items:center;gap:8px;">'
-        +'<div style="flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden;">'
-        +'<div style="width:'+d.rate+'%;height:100%;background:'+rc+';border-radius:3px"></div></div>'
-        +'<span class="mono" style="font-size:11px;font-weight:700;color:'+rc+'">'+d.rate+'%</span></div>';
+      var live=d.typeMap['Live']||0;
+      var dd=d.typeMap['DMS Download']||0;
+      var g='var(--green)', am='var(--amber)';
       return ['<tr>',
         '<td><b>'+esc(d.name)+'</b></td>',
         '<td class="td-num">'+num(d.ents)+'</td>',
-        '<td class="td-num mono">'+num(d.vins)+'</td>',
-        '<td class="td-num" style="color:'+g+'">'+num(d.auto)+'</td>',
-        '<td class="td-num" style="color:'+am+'">'+num(d.live)+'</td>',
-        '<td style="padding-right:20px">'+bar+'</td>',
-        '<td class="td-num mono">'+avg+'</td>',
+        '<td class="td-num">'+num(d.rooftops)+'</td>',
+        '<td class="td-num mono" style="color:var(--accent)">'+num(d.vins)+'</td>',
+        '<td class="td-num mono">'+numK(d.images)+'</td>',
+        '<td class="td-num" style="color:'+g+'">'+num(live)+'</td>',
+        '<td class="td-num" style="color:'+am+'">'+num(dd)+'</td>',
         '</tr>'].join('');
     }).join('');
     if($('dmsTableSub'))
-      $('dmsTableSub').textContent='Sorted by automation rate - '+sorted.length+' DMS systems';
+      $('dmsTableSub').textContent=sorted.length+' DMS systems in current view';
   }
 }
-
-
-
 
 function paint(){
   const filtered=RAW_VIN.filter(passesFilters);
