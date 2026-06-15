@@ -2259,21 +2259,22 @@ function renderUserSummaryTable(rows){
   const personMap = {};
   for(const r of rows){
     const p=(r['Person Responsible']||'').trim(); if(!p||p==='(unassigned)') continue;
-    if(!personMap[p]) personMap[p]={vins:0,images:0,live:0,cu:0,cd:0,dd:0,ents:new Set()};
+    if(!personMap[p]) personMap[p]={vins:0,images:0,live:0,cu:0,cd:0,dd:0,others:0,rooftops:new Set()};
     personMap[p].vins++;
     personMap[p].images+=parseInt(r['Image Count'])||0;
     const t=r['Type']||'';
     if(t==='Live')             personMap[p].live++;
-    if(t==='Console Upload')   personMap[p].cu++;
-    if(t==='Console Download') personMap[p].cd++;
-    if(t==='DMS Download')     personMap[p].dd++;
-    if(r['Enterprise ID'])     personMap[p].ents.add(r['Enterprise ID']);
+    else if(t==='Console Upload')   personMap[p].cu++;
+    else if(t==='Console Download') personMap[p].cd++;
+    else if(t==='DMS Download')     personMap[p].dd++;
+    else                            personMap[p].others++;
+    if(r['Team ID'])           personMap[p].rooftops.add(r['Team ID']);
   }
   userTableData=Object.entries(personMap).map(([name,v])=>({
     name, totalVins:v.vins, totalImages:v.images,
-    liveVins:v.live, consoleUpload:v.cu, consoleDl:v.cd, dmsDl:v.dd,
-    enterprises:v.ents.size,
-    avgImgs:v.vins?+(v.images/v.vins).toFixed(1):0,
+    dmsDl:v.dd, consoleUpload:v.cu, consoleDl:v.cd, liveVins:v.live, others:v.others,
+    rooftops:v.rooftops.size,
+    avgImgs:v.vins?Math.round(v.images/v.vins):0,
   }));
   sortAndRenderUserTable();
 }
@@ -2292,12 +2293,13 @@ function sortAndRenderUserTable(){
     {key:'name',         label:'Person',          cls:''},
     {key:'totalVins',    label:'Total VINs',       cls:'num'},
     {key:'totalImages',  label:'Images',           cls:'num'},
-    {key:'liveVins',     label:'Live VINs',        cls:'num'},
+    {key:'dmsDl',        label:'DMS Download',     cls:'num'},
     {key:'consoleUpload',label:'Console Upload',   cls:'num'},
     {key:'consoleDl',    label:'Console Download', cls:'num'},
-    {key:'dmsDl',        label:'DMS Download',     cls:'num'},
+    {key:'liveVins',     label:'Live VINs',        cls:'num'},
+    {key:'others',       label:'Others',           cls:'num'},
     {key:'avgImgs',      label:'Avg Imgs/VIN',     cls:'num'},
-    {key:'enterprises',  label:'Enterprises',      cls:'num'},
+    {key:'rooftops',     label:'Rooftops',         cls:'num'},
   ];
 
   $('userTHead').innerHTML='<tr>'+cols.map(col=>{
@@ -2312,12 +2314,13 @@ function sortAndRenderUserTable(){
       +'<td>'+esc(r.name)+'</td>'
       +'<td class="td-num mono" style="color:var(--accent)">'+num(r.totalVins)+'</td>'
       +'<td class="td-num mono">'+numK(r.totalImages)+'</td>'
-      +'<td class="td-num mono" style="color:var(--green)">'+num(r.liveVins)+'</td>'
+      +'<td class="td-num mono" style="color:var(--amber)">'+num(r.dmsDl)+'</td>'
       +'<td class="td-num mono" style="color:var(--accent)">'+num(r.consoleUpload)+'</td>'
       +'<td class="td-num mono" style="color:var(--cyan)">'+num(r.consoleDl)+'</td>'
-      +'<td class="td-num mono" style="color:var(--amber)">'+num(r.dmsDl)+'</td>'
-      +'<td class="td-num mono">'+r.avgImgs+'</td>'
-      +'<td class="td-num">'+num(r.enterprises)+'</td>'
+      +'<td class="td-num mono" style="color:var(--green)">'+num(r.liveVins)+'</td>'
+      +'<td class="td-num mono">'+num(r.others)+'</td>'
+      +'<td class="td-num mono">'+num(r.avgImgs)+'</td>'
+      +'<td class="td-num">'+num(r.rooftops)+'</td>'
       +'</tr>'
     ).join('');
 
@@ -2340,20 +2343,22 @@ function sortAndRenderUserTable(){
   if($('userTFoot')){
     const tV=data.reduce((s,r)=>s+r.totalVins,0);
     const tI=data.reduce((s,r)=>s+r.totalImages,0);
-    const tL=data.reduce((s,r)=>s+r.liveVins,0);
+    const tDD=data.reduce((s,r)=>s+r.dmsDl,0);
     const tCU=data.reduce((s,r)=>s+r.consoleUpload,0);
     const tCD=data.reduce((s,r)=>s+r.consoleDl,0);
-    const tDD=data.reduce((s,r)=>s+r.dmsDl,0);
-    const tAvg=tV?+(tI/tV).toFixed(1):0;
+    const tL=data.reduce((s,r)=>s+r.liveVins,0);
+    const tOth=data.reduce((s,r)=>s+r.others,0);
+    const tAvg=tV?Math.round(tI/tV):0;
     $('userTFoot').innerHTML='<tr style="font-weight:600;background:var(--surface-2)">'
       +'<td class="mono" style="font-size:11px;letter-spacing:.06em;color:var(--muted);padding:10px 14px">TOTAL ('+data.length+')</td>'
       +'<td class="td-num mono" style="color:var(--accent)">'+num(tV)+'</td>'
       +'<td class="td-num mono">'+numK(tI)+'</td>'
-      +'<td class="td-num mono" style="color:var(--green)">'+num(tL)+'</td>'
+      +'<td class="td-num mono" style="color:var(--amber)">'+num(tDD)+'</td>'
       +'<td class="td-num mono" style="color:var(--accent)">'+num(tCU)+'</td>'
       +'<td class="td-num mono" style="color:var(--cyan)">'+num(tCD)+'</td>'
-      +'<td class="td-num mono" style="color:var(--amber)">'+num(tDD)+'</td>'
-      +'<td class="td-num mono">'+tAvg+'</td>'
+      +'<td class="td-num mono" style="color:var(--green)">'+num(tL)+'</td>'
+      +'<td class="td-num mono">'+num(tOth)+'</td>'
+      +'<td class="td-num mono">'+num(tAvg)+'</td>'
       +'<td class="td-num">—</td>'
       +'</tr>';
     // Sync col widths
