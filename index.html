@@ -47,7 +47,7 @@ header h1{margin:0;font-family:'Bricolage Grotesque',serif;font-weight:600;font-
 /* FILTERS */
 .filters{background:var(--surface);border-bottom:1px solid var(--line);padding:10px 28px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;box-shadow:0 2px 10px var(--shadow);}
 .f-group{display:flex;flex-direction:column;gap:4px;}
-.f-label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+.f-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
 .f-select{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font:400 13px 'Inter';color:var(--ink);outline:none;cursor:pointer;min-width:140px;transition:border-color .15s;}
 .f-select:focus{border-color:var(--accent);}
 .btn-reset{align-self:flex-end;background:transparent;border:1px solid var(--line);padding:7px 14px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--ink-2);height:34px;}
@@ -62,12 +62,12 @@ header h1{margin:0;font-family:'Bricolage Grotesque',serif;font-weight:600;font-
 .date-panel{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:600;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 32px var(--shadow-lg);min-width:560px;overflow:hidden;}
 .date-panel.open{display:flex;}
 .dp-presets{width:155px;flex-shrink:0;border-right:1px solid var(--line);padding:8px 0;background:var(--bg);}
-.dp-sec{padding:6px 14px 3px;font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+.dp-sec{padding:6px 14px 3px;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
 .dp-preset{display:block;width:100%;text-align:left;padding:7px 14px;background:none;border:none;border-left:2px solid transparent;font:400 13px 'Inter';color:var(--ink-2);cursor:pointer;transition:background .1s;}
 .dp-preset:hover{background:var(--surface);color:var(--ink);}
 .dp-preset.sel{color:var(--accent);font-weight:500;border-left-color:var(--accent);background:var(--surface);}
 .dp-body{flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
-.dp-title{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+.dp-title{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
 .dp-hint{font-size:11px;color:var(--muted);}
 .dp-preview{padding:8px 12px;background:var(--bg);border:1px solid var(--line);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink);min-height:34px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .dp-clear{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:2px 6px;border-radius:4px;}
@@ -115,20 +115,20 @@ header h1{margin:0;font-family:'Bricolage Grotesque',serif;font-weight:600;font-
 
 /* MAIN */
 main{padding:22px 28px 80px;max-width:1600px;margin:0 auto;}
-.section-label{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-bottom:14px;font-weight:500;}
+.section-label{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-bottom:14px;font-weight:500;}
 
 /* KPI CARDS */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:28px;}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;cursor:pointer;position:relative;transition:transform .15s,box-shadow .15s,border-color .15s;display:flex;flex-direction:column;}
 .kpi:hover{transform:translateY(-2px);box-shadow:0 6px 20px var(--shadow-md);border-color:var(--line-2);}
-.kpi-label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500;}
+.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500;}
 .kpi-value{font-family:'Bricolage Grotesque',serif;font-size:34px;font-weight:600;letter-spacing:-.025em;margin-top:12px;line-height:1;font-variant-numeric:tabular-nums;}
 .kpi-value.green{color:var(--green);}.kpi-value.red{color:var(--red);}.kpi-value.amber{color:var(--amber);}.kpi-value.blue{color:var(--accent);}.kpi-value.purple{color:var(--purple);}.kpi-value.cyan{color:var(--cyan);}
 .kpi-delta{display:inline-flex;align-items:center;gap:3px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;margin-top:8px;padding:2px 7px;border-radius:4px;}
 .kpi-delta.up{color:var(--green);background:rgba(74,222,128,.12);}
 .kpi-delta.down{color:var(--red);background:rgba(248,113,113,.12);}
 .kpi-delta.flat{color:var(--muted);background:var(--bg);}
-.kpi-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px;line-height:1.4;}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.4;}
 
 /* PANEL GRID */
 .panel-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-bottom:20px;}
@@ -137,7 +137,7 @@ main{padding:22px 28px 80px;max-width:1600px;margin:0 auto;}
 .panel-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
 .panel-title-wrap{flex:1;min-width:0;}
 .panel h3{margin:0;font-family:'Bricolage Grotesque',serif;font-size:15px;font-weight:600;letter-spacing:-.01em;}
-.panel-sub{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:4px;}
+.panel-sub{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:4px;}
 .chart-wrap{position:relative;height:300px;}
 .chart-wrap.tall{height:340px;}
 .chart-wrap.med{height:240px;}
@@ -173,7 +173,7 @@ main{padding:22px 28px 80px;max-width:1600px;margin:0 auto;}
 .table-scroll{max-height:420px;overflow:auto;}
 table{width:100%;border-collapse:collapse;font-size:13px;}
 thead{position:sticky;top:0;background:var(--surface);z-index:1;}
-th{text-align:left;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line);white-space:nowrap;}
+th{text-align:left;padding:10px 14px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line);white-space:nowrap;}
 th.sortable{cursor:pointer;user-select:none;}
 th.sortable:hover{color:var(--ink);}
 th.num{text-align:right;}.td-num{text-align:right;font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;}
@@ -227,11 +227,11 @@ tr:hover td{background:var(--bg);}
 .modal-backdrop.show .modal-panel{transform:translateX(0);}
 .modal-head{padding:20px 26px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;gap:16px;}
 .modal-title{font-family:'Bricolage Grotesque',serif;font-size:21px;font-weight:600;letter-spacing:-.02em;}
-.modal-sub{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:5px;}
+.modal-sub{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:5px;}
 .modal-close{background:transparent;border:1px solid var(--line);cursor:pointer;width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ink-2);font-size:20px;line-height:1;}
 .modal-close:hover{background:var(--bg);}
 .modal-stats{padding:14px 26px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:22px;background:var(--surface-2);}
-.modal-stat-label{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+.modal-stat-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
 .modal-stat-value{font-family:'Bricolage Grotesque',serif;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;}
 .modal-body{flex:1;overflow:auto;padding:20px 24px;}
 
@@ -571,6 +571,51 @@ tr:hover td{background:var(--bg);}
         <table id="dmsTotTable" style="width:100%;">
           <tbody id="dmsTFoot"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROW 6: Account movement summary ── -->
+  <div class="section-label" style="margin-top:8px;">Account Movement</div>
+  <div class="panel-grid" id="acctMovGrid">
+    <!-- KPI chips -->
+    <div class="panel p-full">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>Enterprise account changes</h3>
+          <div class="panel-sub" id="acctMovSub">comparing selected period vs equivalent previous period</div>
+        </div>
+      </div>
+      <!-- Summary chips row -->
+      <div id="acctMovChips" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:18px;"></div>
+      <!-- Two tables side by side -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <!-- Added -->
+        <div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);"></span>
+            Added / Returned <span id="acctAddedCount" style="margin-left:4px;"></span>
+          </div>
+          <div class="table-scroll" style="max-height:280px;overflow-y:auto;">
+            <table>
+              <thead><tr><th>Enterprise</th><th class="num">Segment</th><th class="num">VINs (current)</th><th class="num">CSM</th></tr></thead>
+              <tbody id="acctAddedBody"><tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted)">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Removed -->
+        <div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--red);font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);"></span>
+            Removed / Inactive <span id="acctRemovedCount" style="margin-left:4px;"></span>
+          </div>
+          <div class="table-scroll" style="max-height:280px;overflow-y:auto;">
+            <table>
+              <thead><tr><th>Enterprise</th><th class="num">Segment</th><th class="num">VINs (prev)</th><th class="num">CSM</th></tr></thead>
+              <tbody id="acctRemovedBody"><tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted)">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -2054,6 +2099,132 @@ function drillDms(dmsName){
 }
 
 
+// ----------------------------------------
+// ACCOUNT MOVEMENT
+// ----------------------------------------
+function renderAccountMovement(){
+  var chips=$('acctMovChips'), addedBody=$('acctAddedBody'), removedBody=$('acctRemovedBody');
+  var addedCount=$('acctAddedCount'), removedCount=$('acctRemovedCount'), sub=$('acctMovSub');
+  if(!chips||!addedBody||!removedBody) return;
+
+  var allRows=RAW_VIN;
+  var fFrom=F.from, fTo=F.to;
+
+  // Need a date range to compare against
+  if(!fFrom&&!fTo){
+    chips.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0">Select a date range filter to see account movement</div>';
+    addedBody.innerHTML='<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted)">Select date range</td></tr>';
+    removedBody.innerHTML='<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted)">Select date range</td></tr>';
+    if(sub) sub.textContent='select a date range above to compare periods';
+    return;
+  }
+
+  // Current period
+  var curFrom=fFrom||new Date(0), curTo=fTo||new Date();
+  curTo=new Date(curTo.getTime()+86399999); // end of day
+
+  // Previous period = same length, immediately before current
+  var periodMs=curTo.getTime()-curFrom.getTime();
+  var prevTo=new Date(curFrom.getTime()-1);
+  var prevFrom=new Date(prevTo.getTime()-periodMs+86400000);
+
+  // Collect enterprise IDs active in each period (respecting other filters but ignoring date)
+  function getEntsInPeriod(from, to){
+    var ents={};
+    for(var i=0;i<allRows.length;i++){
+      var r=allRows[i];
+      if(!r._date) continue;
+      var d=r._date.getTime();
+      if(d<from.getTime()||d>to.getTime()) continue;
+      // Apply non-date filters
+      if(F.seg&&F.seg.size>0&&!setHasCI(F.seg,r._masterSegment)) continue;
+      if(F.type&&F.type.size>0&&!setHasCI(F.type,r['Type'])) continue;
+      if(F.person&&F.person.size>0&&!setHasCI(F.person,r['Person Responsible'])) continue;
+      if(F.stage&&r._masterStage.toLowerCase().trim()!==F.stage.toLowerCase().trim()) continue;
+      if(F.entname&&F.entname.size>0&&!setHasCI(F.entname,r['Account Name'])) continue;
+      if(F.dms&&F.dms.size>0&&!setHasCI(F.dms,r['DMS'])) continue;
+      var eid=(r['Enterprise ID']||'').trim(); if(!eid) continue;
+      if(!ents[eid]) ents[eid]={vins:0,name:r['Account Name']||eid};
+      ents[eid].vins++;
+    }
+    return ents;
+  }
+
+  var curEnts=getEntsInPeriod(curFrom, curTo);
+  var prevEnts=getEntsInPeriod(prevFrom, prevTo);
+  var curIds=Object.keys(curEnts);
+  var prevIds=Object.keys(prevEnts);
+
+  // Added: in current but NOT in previous
+  var added=curIds.filter(function(id){return !prevEnts[id];}).map(function(id){
+    var m=MASTER_MAP[id]||{};
+    return {id:id, name:m['Enterprise Name']||curEnts[id].name||id,
+      segment:m['customer_segment']||'', csm:m['CSM']||'', vins:curEnts[id].vins};
+  }).sort(function(a,b){return b.vins-a.vins;});
+
+  // Removed: in previous but NOT in current
+  var removed=prevIds.filter(function(id){return !curEnts[id];}).map(function(id){
+    var m=MASTER_MAP[id]||{};
+    return {id:id, name:m['Enterprise Name']||prevEnts[id].name||id,
+      segment:m['customer_segment']||'', csm:m['CSM']||'', vins:prevEnts[id].vins};
+  }).sort(function(a,b){return b.vins-a.vins;});
+
+  // Continued: in both
+  var continued=curIds.filter(function(id){return !!prevEnts[id];});
+
+  // Format period labels
+  function fmtPeriod(from,to){
+    return from.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})
+      +' - '+to.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  }
+  var curLabel=fmtPeriod(curFrom, new Date(curTo.getTime()-86399999));
+  var prevLabel=fmtPeriod(prevFrom, prevTo);
+
+  // Summary chips
+  chips.innerHTML=[
+    {label:'Current period', val:curIds.length, sub:curLabel, color:'var(--accent)'},
+    {label:'Previous period', val:prevIds.length, sub:prevLabel, color:'var(--muted)'},
+    {label:'Added', val:added.length, sub:'active in current, not in prev', color:'var(--green)'},
+    {label:'Removed', val:removed.length, sub:'active in prev, not in current', color:'var(--red)'},
+    {label:'Continued', val:continued.length, sub:'active in both periods', color:'var(--amber)'},
+  ].map(function(k){
+    return '<div style="background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px 18px;min-width:150px;">'
+      +'<div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">'+k.label+'</div>'
+      +'<div style="font-size:30px;font-weight:600;color:'+k.color+';margin-top:8px;font-variant-numeric:tabular-nums;">'+k.val+'</div>'
+      +'<div style="font-size:10px;color:var(--muted);margin-top:4px;">'+k.sub+'</div>'
+      +'</div>';
+  }).join('');
+
+  if(addedCount) addedCount.textContent='('+added.length+')';
+  if(removedCount) removedCount.textContent='('+removed.length+')';
+
+  function makeRows(list, vinLabel){
+    if(!list.length) return '<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted)">None</td></tr>';
+    return list.map(function(r){
+      var segPill=r.segment?('<span class="pill '+(r.segment==='Ent'?'live':r.segment==='SMB'?'upload':'other')+'">'+esc(r.segment)+'</span>'):'—';
+      return '<tr style="cursor:pointer" data-eid="'+esc(r.id)+'">'
+        +'<td title="'+esc(r.name)+'">'+esc(r.name)+'</td>'
+        +'<td class="td-num">'+segPill+'</td>'
+        +'<td class="td-num mono" style="color:var(--accent)">'+num(r.vins)+'</td>'
+        +'<td>'+esc(r.csm||'—')+'</td>'
+        +'</tr>';
+    }).join('');
+  }
+
+  addedBody.innerHTML=makeRows(added, 'VINs (current)');
+  removedBody.innerHTML=makeRows(removed, 'VINs (prev)');
+
+  // Click to drill
+  [addedBody, removedBody].forEach(function(tbody){
+    tbody.querySelectorAll('tr[data-eid]').forEach(function(tr){
+      tr.addEventListener('click',function(){drillEnt(tr.dataset.eid);});
+    });
+  });
+
+  if(sub) sub.textContent='Current: '+curLabel+' vs Prev: '+prevLabel;
+}
+
+
 function paint(){
   const filtered=RAW_VIN.filter(passesFilters);
   const k=aggregate(filtered);
@@ -2076,6 +2247,7 @@ function paint(){
   renderTypeMom(filtered);
   renderUserChart();
   renderDmsAnalytics();
+  renderAccountMovement();
   renderEntTable(k.ents);
 }
 
