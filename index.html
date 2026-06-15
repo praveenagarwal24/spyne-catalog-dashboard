@@ -559,11 +559,17 @@ tr:hover td{background:var(--bg);}
           <div class="panel-sub" id="dmsTableSub">VINs &middot; enterprises &middot; rooftops per DMS &middot; click row to drill</div>
         </div>
       </div>
-      <div class="table-scroll">
-        <table>
+      <!-- scrollable data rows -->
+      <div class="table-scroll" style="max-height:360px;overflow-y:auto;" id="dmsScrollWrap">
+        <table id="dmsMainTable" style="width:100%;">
           <thead id="dmsTHead"></thead>
-          <tbody id="dmsTBody"><tr><td colspan="7" style="padding:30px;text-align:center;color:var(--muted)">Loading...</td></tr></tbody>
-          <tfoot id="dmsTFoot"></tfoot>
+          <tbody id="dmsTBody"><tr><td colspan="9" style="padding:30px;text-align:center;color:var(--muted)">Loading...</td></tr></tbody>
+        </table>
+      </div>
+      <!-- fixed totals row always visible at bottom -->
+      <div style="border-top:2px solid var(--line-2);">
+        <table id="dmsTotTable" style="width:100%;">
+          <tbody id="dmsTFoot"></tbody>
         </table>
       </div>
     </div>
@@ -1979,6 +1985,18 @@ function renderDmsAnalytics(){
       var ind=th.querySelector('.sort-ind');
       if(ind) ind.innerHTML=th.dataset.dcol===dmsSort.col?(dmsSort.dir==='desc'?'&#x2193;':'&#x2191;'):'&#x21D5;';
     });
+
+    // Sync totals table column widths to match header
+    setTimeout(function(){
+      var mainThs=$('dmsTHead').querySelectorAll('th');
+      var totTds=$('dmsTFoot').querySelectorAll('td');
+      if(mainThs.length&&totTds.length===mainThs.length){
+        mainThs.forEach(function(th,i){
+          totTds[i].style.width=th.offsetWidth+'px';
+          totTds[i].style.minWidth=th.offsetWidth+'px';
+        });
+      }
+    },50);
   }
 
   renderRows();
