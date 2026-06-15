@@ -589,7 +589,7 @@ tr:hover td{background:var(--bg);}
       <!-- Summary chips row -->
       <div id="acctMovChips" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:18px;"></div>
       <!-- Two tables side by side -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div style="display:grid;grid-template-columns:1fr 2px 1fr;gap:16px;align-items:start;">
         <!-- Added -->
         <div>
           <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
@@ -604,6 +604,7 @@ tr:hover td{background:var(--bg);}
           </div>
         </div>
         <!-- Removed -->
+        <div style="background:var(--line);align-self:stretch;border-radius:1px;"></div>
         <div>
           <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--red);font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
             <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);"></span>
@@ -2121,12 +2122,13 @@ function renderAccountMovement(){
 
   // Current period
   var curFrom=fFrom||new Date(0), curTo=fTo||new Date();
-  curTo=new Date(curTo.getTime()+86399999); // end of day
+  var curToDisplay=new Date(curTo.getTime()); // original fTo for display
+  curTo=new Date(curTo.getTime()+86399999); // end of day for filtering
 
-  // Previous period = same length, immediately before current
-  var periodMs=curTo.getTime()-curFrom.getTime();
-  var prevTo=new Date(curFrom.getTime()-1);
-  var prevFrom=new Date(prevTo.getTime()-periodMs+86400000);
+  // Previous period: same number of days, immediately before curFrom (no overlap, no gap)
+  var periodDays=Math.round((curToDisplay.getTime()-curFrom.getTime())/86400000)+1;
+  var prevTo=new Date(curFrom.getTime()-86400000); // day before curFrom
+  var prevFrom=new Date(prevTo.getTime()-(periodDays-1)*86400000); // same length
 
   // Collect enterprise IDs active in each period (respecting other filters but ignoring date)
   function getEntsInPeriod(from, to){
