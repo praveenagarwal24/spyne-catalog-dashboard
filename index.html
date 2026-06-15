@@ -2125,9 +2125,10 @@ function renderAccountMovement(){
   var curToDisplay=new Date(curTo.getTime());
   curTo=new Date(curTo.getTime()+86399999); // end of day for filtering
 
-  // Previous period = everything before curFrom (all time prior)
-  var prevFrom=new Date(0);
-  var prevTo=new Date(curFrom.getTime()-86400000); // day before selected range starts
+  // Previous period: same number of days, immediately before curFrom (no overlap, no gap)
+  var periodDays=Math.round((curToDisplay.getTime()-curFrom.getTime())/86400000)+1;
+  var prevTo=new Date(curFrom.getTime()-86400000); // day before curFrom
+  var prevFrom=new Date(prevTo.getTime()-(periodDays-1)*86400000); // same length
 
   // Collect enterprise IDs active in each period (respecting other filters but ignoring date)
   function getEntsInPeriod(from, to){
@@ -2179,7 +2180,7 @@ function renderAccountMovement(){
       +' - '+to.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
   }
   var curLabel=fmtPeriod(curFrom, curToDisplay);
-  var prevLabel='before '+curFrom.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  var prevLabel=fmtPeriod(prevFrom, prevTo);
 
   // Summary chips
   chips.innerHTML=[
