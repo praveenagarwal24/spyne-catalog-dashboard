@@ -643,6 +643,27 @@ tr:hover td{background:var(--bg);}
       </div>
     </div>
   </div>
+
+  <!-- ── ROW 7: User efficiency summary ── -->
+  <div class="panel-grid" style="margin-top:0;">
+    <div class="panel p-full" style="padding:0;">
+      <div class="panel-header" style="padding:14px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:0;">
+        <div class="panel-title-wrap"><h3>User efficiency summary</h3><div class="panel-sub" id="userTableSub">VINs · images · live per person · click row to drill</div></div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="userSearch" placeholder="Search person…" style="background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:400 13px 'Inter';color:var(--ink);outline:none;width:200px;">
+        </div>
+      </div>
+      <div class="table-scroll" style="max-height:420px;overflow-y:auto;">
+        <table id="userSummaryTable">
+          <thead id="userTHead"></thead>
+          <tbody id="userTBody"><tr><td colspan="8" class="empty" style="padding:40px;text-align:center;color:var(--muted)">Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <div style="border-top:2px solid var(--line-2);">
+        <table style="width:100%;"><tbody id="userTFoot"></tbody></table>
+      </div>
+    </div>
+  </div>
 </main>
 
 <script>
@@ -2227,6 +2248,126 @@ function renderAccountMovement(){
 }
 
 
+// ----------------------------------------
+// USER EFFICIENCY SUMMARY TABLE
+// ----------------------------------------
+let userTableData = [];
+let userSortState = {col:'totalVins', dir:'desc'};
+
+function renderUserSummaryTable(rows){
+  // Aggregate per person from filtered rows
+  const personMap = {};
+  for(const r of rows){
+    const p=(r['Person Responsible']||'').trim(); if(!p||p==='(unassigned)') continue;
+    if(!personMap[p]) personMap[p]={vins:0,images:0,live:0,cu:0,cd:0,dd:0,ents:new Set()};
+    personMap[p].vins++;
+    personMap[p].images+=parseInt(r['Image Count'])||0;
+    const t=r['Type']||'';
+    if(t==='Live')             personMap[p].live++;
+    if(t==='Console Upload')   personMap[p].cu++;
+    if(t==='Console Download') personMap[p].cd++;
+    if(t==='DMS Download')     personMap[p].dd++;
+    if(r['Enterprise ID'])     personMap[p].ents.add(r['Enterprise ID']);
+  }
+  userTableData=Object.entries(personMap).map(([name,v])=>({
+    name, totalVins:v.vins, totalImages:v.images,
+    liveVins:v.live, consoleUpload:v.cu, consoleDl:v.cd, dmsDl:v.dd,
+    enterprises:v.ents.size,
+    avgImgs:v.vins?+(v.images/v.vins).toFixed(1):0,
+  }));
+  sortAndRenderUserTable();
+}
+
+function sortAndRenderUserTable(){
+  if(!$('userTHead')||!$('userTBody')) return;
+  const q=($('userSearch').value||'').toLowerCase();
+  let data=userTableData.filter(r=>!q||r.name.toLowerCase().includes(q));
+  data.sort((a,b)=>{
+    const av=a[userSortState.col]||0, bv=b[userSortState.col]||0;
+    const cmp=typeof av==='number'?av-bv:String(av).localeCompare(String(bv));
+    return userSortState.dir==='desc'?-cmp:cmp;
+  });
+
+  const cols=[
+    {key:'name',         label:'Person',          cls:''},
+    {key:'totalVins',    label:'Total VINs',       cls:'num'},
+    {key:'totalImages',  label:'Images',           cls:'num'},
+    {key:'liveVins',     label:'Live VINs',        cls:'num'},
+    {key:'consoleUpload',label:'Console Upload',   cls:'num'},
+    {key:'consoleDl',    label:'Console Download', cls:'num'},
+    {key:'dmsDl',        label:'DMS Download',     cls:'num'},
+    {key:'avgImgs',      label:'Avg Imgs/VIN',     cls:'num'},
+    {key:'enterprises',  label:'Enterprises',      cls:'num'},
+  ];
+
+  $('userTHead').innerHTML='<tr>'+cols.map(col=>{
+    const isSorted=userSortState.col===col.key;
+    return '<th class="sortable '+(isSorted?'sorted ':'')+col.cls+'" data-usort="'+col.key+'">'
+      +esc(col.label)+'<span class="sort-ind">'+(isSorted?(userSortState.dir==='desc'?'↓':'↑'):'↕')+'</span></th>';
+  }).join('')+'</tr>';
+
+  $('userTBody').innerHTML=!data.length
+    ?('<tr><td colspan="'+cols.length+'" style="padding:40px;text-align:center;color:var(--muted)">No results</td></tr>')
+    :data.map(r=>'<tr style="cursor:pointer" data-person="'+esc(r.name)+'">'
+      +'<td>'+esc(r.name)+'</td>'
+      +'<td class="td-num mono" style="color:var(--accent)">'+num(r.totalVins)+'</td>'
+      +'<td class="td-num mono">'+numK(r.totalImages)+'</td>'
+      +'<td class="td-num mono" style="color:var(--green)">'+num(r.liveVins)+'</td>'
+      +'<td class="td-num mono" style="color:var(--accent)">'+num(r.consoleUpload)+'</td>'
+      +'<td class="td-num mono" style="color:var(--cyan)">'+num(r.consoleDl)+'</td>'
+      +'<td class="td-num mono" style="color:var(--amber)">'+num(r.dmsDl)+'</td>'
+      +'<td class="td-num mono">'+r.avgImgs+'</td>'
+      +'<td class="td-num">'+num(r.enterprises)+'</td>'
+      +'</tr>'
+    ).join('');
+
+  // Sort click
+  $('userTHead').querySelectorAll('th.sortable').forEach(th=>{
+    th.addEventListener('click',()=>{
+      const col=th.dataset.usort;
+      if(userSortState.col===col) userSortState.dir=userSortState.dir==='desc'?'asc':'desc';
+      else{userSortState.col=col; userSortState.dir='desc';}
+      sortAndRenderUserTable();
+    });
+  });
+
+  // Drill on row click
+  $('userTBody').querySelectorAll('tr[data-person]').forEach(tr=>{
+    tr.addEventListener('click',()=>drillPerson(tr.dataset.person));
+  });
+
+  // Totals row
+  if($('userTFoot')){
+    const tV=data.reduce((s,r)=>s+r.totalVins,0);
+    const tI=data.reduce((s,r)=>s+r.totalImages,0);
+    const tL=data.reduce((s,r)=>s+r.liveVins,0);
+    const tCU=data.reduce((s,r)=>s+r.consoleUpload,0);
+    const tCD=data.reduce((s,r)=>s+r.consoleDl,0);
+    const tDD=data.reduce((s,r)=>s+r.dmsDl,0);
+    const tAvg=tV?+(tI/tV).toFixed(1):0;
+    $('userTFoot').innerHTML='<tr style="font-weight:600;background:var(--surface-2)">'
+      +'<td class="mono" style="font-size:11px;letter-spacing:.06em;color:var(--muted);padding:10px 14px">TOTAL ('+data.length+')</td>'
+      +'<td class="td-num mono" style="color:var(--accent)">'+num(tV)+'</td>'
+      +'<td class="td-num mono">'+numK(tI)+'</td>'
+      +'<td class="td-num mono" style="color:var(--green)">'+num(tL)+'</td>'
+      +'<td class="td-num mono" style="color:var(--accent)">'+num(tCU)+'</td>'
+      +'<td class="td-num mono" style="color:var(--cyan)">'+num(tCD)+'</td>'
+      +'<td class="td-num mono" style="color:var(--amber)">'+num(tDD)+'</td>'
+      +'<td class="td-num mono">'+tAvg+'</td>'
+      +'<td class="td-num">—</td>'
+      +'</tr>';
+    // Sync col widths
+    setTimeout(()=>{
+      const ths=$('userTHead').querySelectorAll('th');
+      const tds=$('userTFoot').querySelectorAll('td');
+      if(ths.length===tds.length) ths.forEach((th,i)=>{tds[i].style.width=th.offsetWidth+'px';tds[i].style.minWidth=th.offsetWidth+'px';});
+    },50);
+  }
+
+  if($('userTableSub')) $('userTableSub').textContent=data.length+' persons in view · click row to drill';
+}
+
+
 function paint(){
   const filtered=RAW_VIN.filter(passesFilters);
   const k=aggregate(filtered);
@@ -2251,6 +2392,7 @@ function paint(){
   renderDmsAnalytics();
   renderAccountMovement();
   renderEntTable(k.ents);
+  renderUserSummaryTable(filtered);
 }
 
 function refresh(){
@@ -2548,6 +2690,7 @@ $('dmsChartTypeTabs').addEventListener('click',e=>{
 });
 $('syncBtn').addEventListener('click',()=>loadAll());
 $('entSearch').addEventListener('input',()=>sortAndRenderEntTable());
+$('userSearch').addEventListener('input',()=>sortAndRenderUserTable());
 $('entTBody').addEventListener('click',e=>{const tr=e.target.closest('tr[data-eid]');if(tr)drillEnt(tr.dataset.eid);});
 $('exportBtn').addEventListener('click',()=>{
   const rows=RAW_VIN.filter(passesFilters);
