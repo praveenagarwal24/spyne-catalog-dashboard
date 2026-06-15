@@ -2122,13 +2122,12 @@ function renderAccountMovement(){
 
   // Current period
   var curFrom=fFrom||new Date(0), curTo=fTo||new Date();
-  var curToDisplay=new Date(curTo.getTime()); // original fTo for display
+  var curToDisplay=new Date(curTo.getTime());
   curTo=new Date(curTo.getTime()+86399999); // end of day for filtering
 
-  // Previous period: same number of days, immediately before curFrom (no overlap, no gap)
-  var periodDays=Math.round((curToDisplay.getTime()-curFrom.getTime())/86400000)+1;
-  var prevTo=new Date(curFrom.getTime()-86400000); // day before curFrom
-  var prevFrom=new Date(prevTo.getTime()-(periodDays-1)*86400000); // same length
+  // Previous period = everything before curFrom (all time prior)
+  var prevFrom=new Date(0);
+  var prevTo=new Date(curFrom.getTime()-86400000); // day before selected range starts
 
   // Collect enterprise IDs active in each period (respecting other filters but ignoring date)
   function getEntsInPeriod(from, to){
@@ -2179,8 +2178,8 @@ function renderAccountMovement(){
     return from.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})
       +' - '+to.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
   }
-  var curLabel=fmtPeriod(curFrom, new Date(curTo.getTime()-86399999));
-  var prevLabel=fmtPeriod(prevFrom, prevTo);
+  var curLabel=fmtPeriod(curFrom, curToDisplay);
+  var prevLabel='before '+curFrom.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
 
   // Summary chips
   chips.innerHTML=[
