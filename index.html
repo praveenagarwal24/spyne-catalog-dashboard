@@ -584,10 +584,15 @@ tr:hover td{background:var(--bg);}
           <input type="text" id="entSearch" placeholder="Search enterprise…" style="background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:400 13px 'Inter';color:var(--ink);outline:none;width:200px;">
         </div>
       </div>
-      <div class="table-scroll">
-        <table>
+      <div class="table-scroll" style="max-height:420px;overflow-y:auto;" id="entScrollWrap">
+        <table id="entMainTable">
           <thead id="entTHead"></thead>
-          <tbody id="entTBody"><tr><td colspan="8" class="empty" style="padding:40px;text-align:center;color:var(--muted)">Loading…</td></tr></tbody>
+          <tbody id="entTBody"><tr><td colspan="9" class="empty" style="padding:40px;text-align:center;color:var(--muted)">Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <div style="border-top:2px solid var(--line-2);">
+        <table id="entTotTable" style="width:100%;">
+          <tbody id="entTFoot"></tbody>
         </table>
       </div>
     </div>
@@ -940,11 +945,12 @@ function aggregate(rows){
 
     // per-enterprise
     if(entId){
-      if(!entMap[entId]) entMap[entId]={totalVins:0,totalImages:0,rooftops:new Set(),typeMap:{}};
+      if(!entMap[entId]) entMap[entId]={totalVins:0,totalImages:0,rooftops:new Set(),typeMap:{},dmsSet:{}};
       entMap[entId].totalVins++;
       entMap[entId].totalImages+=imgs;
       if(teamId) entMap[entId].rooftops.add(teamId);
       entMap[entId].typeMap[type]=(entMap[entId].typeMap[type]||0)+1;
+      const rowDms=(r['DMS']||'').trim(); if(rowDms) entMap[entId].dmsSet[rowDms]=(entMap[entId].dmsSet[rowDms]||0)+1;
     }
 
     // per-person per-month
@@ -976,6 +982,8 @@ function aggregate(rows){
       csm:(m['CSM']||''),
       typeMap:v.typeMap,
       liveVins:v.typeMap['Live']||0,
+      dmsDownload:v.typeMap['DMS Download']||0,
+      dmsName:Object.keys(v.dmsSet).sort((a,b)=>v.dmsSet[b]-v.dmsSet[a])[0]||'',
     };
   }
 
@@ -1772,46 +1780,47 @@ function renderEntTable(ents){
 
 function sortAndRenderEntTable(){
   const q=($('entSearch').value||'').toLowerCase();
-  let data=entTableData.filter(r=>!q||(r.name+r.id+r.csm).toLowerCase().includes(q));
+  let data=entTableData.filter(r=>!q||(r.name+r.id+r.csm+r.dmsName).toLowerCase().includes(q));
   data.sort((a,b)=>{
     const av=a[entSortState.col]||0, bv=b[entSortState.col]||0;
     const cmp=typeof av==='number'?av-bv:String(av).localeCompare(String(bv));
     return entSortState.dir==='desc'?-cmp:cmp;
   });
 
+  // Columns: removed Stage + Rooftops, added DMS + DMS Download
   const cols=[
-    {key:'name',label:'Enterprise',cls:''},
-    {key:'segment',label:'Segment',cls:'num'},
-    {key:'stage',label:'Stage',cls:'num'},
-    {key:'rooftops',label:'Rooftops',cls:'num'},
-    {key:'totalVins',label:'Total VINs',cls:'num'},
-    {key:'liveVins',label:'Live VINs',cls:'num'},
-    {key:'totalImages',label:'Images',cls:'num'},
-    {key:'csm',label:'CSM',cls:''},
+    {key:'name',       label:'Enterprise',    cls:''},
+    {key:'segment',    label:'Segment',       cls:'num'},
+    {key:'dmsName',    label:'DMS',           cls:'num'},
+    {key:'totalVins',  label:'Total VINs',    cls:'num'},
+    {key:'liveVins',   label:'Live VINs',     cls:'num'},
+    {key:'dmsDownload',label:'DMS Download',  cls:'num'},
+    {key:'totalImages',label:'Images',        cls:'num'},
+    {key:'csm',        label:'CSM',           cls:''},
   ];
 
-  $('entTHead').innerHTML=`<tr>${cols.map(c=>{
+  $('entTHead').innerHTML='<tr>'+cols.map(c=>{
     const isSorted=entSortState.col===c.key;
-    return`<th class="sortable ${isSorted?'sorted':''} ${c.cls}" data-sort="${c.key}">${esc(c.label)}<span class="sort-ind">${isSorted?(entSortState.dir==='desc'?'↓':'↑'):'↕'}</span></th>`;
-  }).join('')}</tr>`;
+    return '<th class="sortable '+(isSorted?'sorted ':'')+c.cls+'" data-sort="'+c.key+'">'+esc(c.label)+'<span class="sort-ind">'+(isSorted?(entSortState.dir==='desc'?'↓':'↑'):'↕')+'</span></th>';
+  }).join('')+'</tr>';
 
   $('entTBody').innerHTML=!data.length
-    ?`<tr><td colspan="${cols.length}" style="padding:40px;text-align:center;color:var(--muted)">No results</td></tr>`
+    ?('<tr><td colspan="'+cols.length+'" style="padding:40px;text-align:center;color:var(--muted)">No results</td></tr>')
     :data.map(r=>{
-      const stagePill=r.stage?`<span class="pill ${r.stage.toLowerCase()==='live'?'live':''}">${esc(r.stage)}</span>`:'—';
-      const segPill=r.segment?`<span class="pill ${r.segment==='Ent'?'live':r.segment==='SMB'?'upload':'other'}">${esc(r.segment)}</span>`:'—';
-      return`<tr onclick="drillEnt('${esc(r.id)}')" style="cursor:pointer">
-        <td class="copy-cell" data-copy="${esc(r.name)}" title="${esc(r.name)}">${esc(r.name||r.id)}</td>
-        <td class="td-num">${segPill}</td>
-        <td class="td-num">${stagePill}</td>
-        <td class="td-num">${num(r.rooftops)}</td>
-        <td class="td-num" style="color:var(--accent);font-family:'JetBrains Mono',monospace">${num(r.totalVins)}</td>
-        <td class="td-num" style="color:var(--green);font-family:'JetBrains Mono',monospace">${num(r.liveVins)}</td>
-        <td class="td-num mono">${numK(r.totalImages)}</td>
-        <td>${esc(r.csm||'—')}</td>
-      </tr>`;
+      const segPill=r.segment?('<span class="pill '+(r.segment==='Ent'?'live':r.segment==='SMB'?'upload':'other')+'">'+esc(r.segment)+'</span>'):'—';
+      return '<tr data-eid="'+esc(r.id)+'" style="cursor:pointer">'
+        +'<td class="copy-cell" data-copy="'+esc(r.name)+'" title="'+esc(r.name)+'">'+esc(r.name||r.id)+'</td>'
+        +'<td class="td-num">'+segPill+'</td>'
+        +'<td class="td-num mono">'+esc(r.dmsName||'—')+'</td>'
+        +'<td class="td-num mono" style="color:var(--accent)">'+num(r.totalVins)+'</td>'
+        +'<td class="td-num mono" style="color:var(--green)">'+num(r.liveVins)+'</td>'
+        +'<td class="td-num mono" style="color:var(--amber)">'+num(r.dmsDownload)+'</td>'
+        +'<td class="td-num mono">'+numK(r.totalImages)+'</td>'
+        +'<td>'+esc(r.csm||'—')+'</td>'
+        +'</tr>';
     }).join('');
 
+  // Sort click
   $('entTHead').querySelectorAll('th.sortable').forEach(th=>{
     th.addEventListener('click',()=>{
       const col=th.dataset.sort;
@@ -1821,7 +1830,31 @@ function sortAndRenderEntTable(){
     });
   });
 
-  $('entTableSub').textContent=`${data.length} enterprises · linked with Master · click row to drill`;
+  // Totals row
+  if($('entTFoot')){
+    const totVins=data.reduce((s,r)=>s+r.totalVins,0);
+    const totLive=data.reduce((s,r)=>s+r.liveVins,0);
+    const totDmsDl=data.reduce((s,r)=>s+r.dmsDownload,0);
+    const totImgs=data.reduce((s,r)=>s+r.totalImages,0);
+    $('entTFoot').innerHTML='<tr style="font-weight:600;background:var(--surface-2)">'
+      +'<td class="mono" style="font-size:11px;letter-spacing:.06em;color:var(--muted);padding:10px 14px">TOTAL ('+data.length+')</td>'
+      +'<td class="td-num">—</td>'
+      +'<td class="td-num">—</td>'
+      +'<td class="td-num mono" style="color:var(--accent)">'+num(totVins)+'</td>'
+      +'<td class="td-num mono" style="color:var(--green)">'+num(totLive)+'</td>'
+      +'<td class="td-num mono" style="color:var(--amber)">'+num(totDmsDl)+'</td>'
+      +'<td class="td-num mono">'+numK(totImgs)+'</td>'
+      +'<td>—</td>'
+      +'</tr>';
+    // Sync column widths
+    setTimeout(()=>{
+      const ths=$('entTHead').querySelectorAll('th');
+      const tds=$('entTFoot').querySelectorAll('td');
+      if(ths.length===tds.length) ths.forEach((th,i)=>{tds[i].style.width=th.offsetWidth+'px';tds[i].style.minWidth=th.offsetWidth+'px';});
+    },50);
+  }
+
+  $('entTableSub').textContent=data.length+' enterprises · linked with Master · click row to drill';
 }
 
 // ----------------------------------------
@@ -2341,6 +2374,7 @@ $('dmsChartTypeTabs').addEventListener('click',e=>{
 });
 $('syncBtn').addEventListener('click',()=>loadAll());
 $('entSearch').addEventListener('input',()=>sortAndRenderEntTable());
+$('entTBody').addEventListener('click',e=>{const tr=e.target.closest('tr[data-eid]');if(tr)drillEnt(tr.dataset.eid);});
 $('exportBtn').addEventListener('click',()=>{
   const rows=RAW_VIN.filter(passesFilters);
   if(!rows.length)return;
