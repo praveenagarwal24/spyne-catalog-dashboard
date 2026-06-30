@@ -155,23 +155,70 @@ main{padding:22px 28px 80px;max-width:1600px;margin:0 auto;}
 .trend-legend-item .ldot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
 .ldot.line{border-radius:0;height:2px;width:16px;}
 .trend-legend-item .lval{color:var(--ink);font-weight:500;}
-.pivot-th{padding:8px 10px;background:var(--surface-2);font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--line);border-right:1px solid var(--line);white-space:nowrap;position:sticky;top:0;z-index:2;}
-.pivot-th.sticky-left{position:sticky;left:0;z-index:3;background:var(--surface-2);}
-.pivot-th.date-col{text-align:right;min-width:70px;}
-.pivot-td{padding:7px 10px;border-bottom:1px solid var(--line);border-right:1px solid var(--line-2);color:var(--ink-2);vertical-align:middle;}
-.pivot-td.sticky-left{position:sticky;left:0;background:var(--surface);z-index:1;}
-.pivot-td.acct-cell{font-weight:500;color:var(--ink);min-width:180px;max-width:220px;overflow:hidden;text-overflow:ellipsis;}
-.pivot-td.person-cell{color:var(--muted);font-size:12px;min-width:130px;}
-.pivot-td.num-cell{text-align:right;font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;}
-.pivot-td.num-cell.has-val{color:var(--ink);}
+/* ── Daily pivot table — refined visuals ── */
+.pivot-th{
+  padding:10px 12px;background:var(--surface-2);
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.07em;color:var(--muted);
+  border-bottom:1.5px solid var(--line);white-space:nowrap;
+  position:sticky;top:0;z-index:2;text-align:right;
+}
+.pivot-th.sticky-left{position:sticky;left:0;z-index:3;background:var(--surface-2);text-align:left;}
+.pivot-th.date-col{position:relative;}
+.pivot-th.date-col.is-today{color:var(--accent);}
+.pivot-th.total-col{color:var(--ink);border-left:1.5px solid var(--line);}
+.today-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);margin-left:5px;vertical-align:middle;}
+
+.pivot-td{
+  padding:8px 12px;border-bottom:1px solid var(--line);
+  color:var(--ink-2);vertical-align:middle;text-align:right;
+  font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:12.5px;
+}
+.pivot-td.sticky-left{position:sticky;left:0;z-index:1;text-align:left;font-family:'Inter',sans-serif;}
+.pivot-td.row-num{color:var(--muted);font-size:11px;text-align:center !important;}
+.pivot-td.acct-cell{font-weight:600;color:var(--ink);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pivot-td.person-cell{color:var(--muted);font-size:11.5px;font-family:'Inter',sans-serif;text-align:left;}
+.pivot-td.sub-person{padding-left:14px;}
+.pivot-td.sub-indent{background:inherit;}
+
+.pivot-td.num-cell.has-val{color:var(--ink);font-weight:500;}
 .pivot-td.num-cell.zero{color:var(--line-2);}
-.pivot-td.num-cell.gap-cell{background:rgba(248,113,113,.16);color:var(--red);font-weight:600;}
-.pivot-td.total-cell{text-align:right;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--accent);border-left:2px solid var(--line);}
-.pivot-foot td{padding:8px 10px;background:var(--surface-2);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;border-top:2px solid var(--line-2);border-right:1px solid var(--line-2);text-align:right;}
-.pivot-foot td.label-cell{text-align:left;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-size:10px;position:sticky;left:0;background:var(--surface-2);}
-.pivot-acct-row td{background:var(--surface);}
-.pivot-sub-row td{background:var(--surface-2);}
-tr.pivot-acct-row:hover td, tr.pivot-sub-row:hover td{background:var(--bg);}
+.pivot-td.num-cell.gap-cell{color:var(--red);position:relative;}
+.gap-dot{
+  display:inline-block;width:5px;height:5px;border-radius:50%;
+  background:var(--red);opacity:.85;vertical-align:middle;
+}
+.pivot-td.num-cell.is-today{background:rgba(107,158,255,.07);}
+
+.pivot-td.total-cell{
+  font-weight:700;color:var(--accent);font-size:13px;
+  border-left:1.5px solid var(--line);
+}
+.pivot-td.sub-total{color:var(--muted);font-weight:500;font-size:12px;}
+
+/* Row backgrounds — alternating + clear hover */
+tr.pivot-acct-row td{background:var(--surface);border-top:1px solid var(--line);}
+tr.pivot-acct-row.alt td{background:var(--surface-alt, var(--surface));}
+tr.pivot-sub-row td{background:var(--surface-2);}
+tr.pivot-acct-row:hover td{background:var(--bg-hover, var(--bg));}
+tr.pivot-sub-row:hover td{background:var(--bg-hover, var(--bg));}
+
+/* Footer */
+.pf-cell{
+  padding:11px 12px;background:var(--surface-2);
+  font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
+  border-top:2px solid var(--accent);text-align:right;color:var(--ink);
+}
+.pf-cell.pf-sigma{text-align:center;color:var(--muted);font-size:14px;position:sticky;left:0;z-index:2;background:var(--surface-2);}
+.pf-cell.pf-label{
+  text-align:left;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.06em;font-size:10px;font-weight:600;
+  position:sticky;left:0;z-index:2;background:var(--surface-2);
+}
+.pf-count{color:var(--line-2);font-weight:400;}
+.pf-cell.pf-num{color:var(--accent);}
+.pf-cell.pf-num.is-today{color:var(--accent);background:rgba(107,158,255,.1);}
+.pf-cell.pf-grand{border-left:1.5px solid var(--line);color:var(--accent);font-size:15px;}
 .type-legend-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
   font:500 12px 'Inter';cursor:pointer;border:1.5px solid transparent;transition:all .15s;user-select:none;white-space:nowrap;}
 .type-legend-chip .tl-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;transition:opacity .15s;}
@@ -2496,13 +2543,16 @@ function renderPivotTable(){
     +' · '+dates.length+' days · '+[...pivotActiveTypes].join(', ');
 }
 
-function markGaps(cells){
+function markGaps(cells, dates, todayKey){
   // D-1 rule: once an account has had activity, every subsequent zero day
   // is a gap (carries forward through consecutive silent days) until
   // activity resumes. First column is never flagged (no prior day to compare).
+  // Today's date is NEVER flagged — the day isn't over yet, so a blank
+  // cell there just means "no data submitted so far today", not a real gap.
   let everActive=false;
   return cells.map((v,i)=>{
-    const gap = v===0 && everActive;
+    const isToday = dates && todayKey && dates[i]===todayKey;
+    const gap = v===0 && everActive && !isToday;
     if(v>0) everActive=true;
     return {v, gap};
   });
@@ -2541,7 +2591,9 @@ function renderPivotBody(dates, allRows){
   }
 
   const accts=Object.keys(pivot).sort();
-  const NUM_W=44, ACCT_W=200, PERSON_W=130, COL_W=68, TOT_W=72;
+  const now=new Date();
+  const todayKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  const NUM_W=40, ACCT_W=210, PERSON_W=130, COL_W=64, TOT_W=70;
   const totalWidth=NUM_W+ACCT_W+PERSON_W+(dates.length*COL_W)+TOT_W;
 
   // Match footer table width to main table so columns align
@@ -2563,14 +2615,15 @@ function renderPivotBody(dates, allRows){
     +'<th class="pivot-th" style="width:'+PERSON_W+'px;">Person</th>'
     +dates.map(d=>{
       const dt=new Date(d+'T00:00:00');
-      return '<th class="pivot-th date-col" style="width:'+COL_W+'px;">'
-        +dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+'</th>';
+      const isToday=d===todayKey;
+      return '<th class="pivot-th date-col'+(isToday?' is-today':'')+'" style="width:'+COL_W+'px;">'
+        +dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+(isToday?'<span class="today-dot"></span>':'')+'</th>';
     }).join('')
-    +'<th class="pivot-th" style="width:'+TOT_W+'px;border-left:2px solid var(--line);color:var(--accent);text-align:right;padding-right:10px;">Total</th>'
+    +'<th class="pivot-th total-col" style="width:'+TOT_W+'px;">Total</th>'
     +'</tr>';
 
   if(!accts.length){
-    tbody.innerHTML='<tr><td colspan="'+(dates.length+4)+'" style="padding:30px;text-align:center;color:var(--muted)">No data for this range / filter</td></tr>';
+    tbody.innerHTML='<tr><td colspan="'+(dates.length+4)+'" style="padding:36px;text-align:center;color:var(--muted)">No data for this range / filter</td></tr>';
     tfoot.innerHTML=''; return;
   }
 
@@ -2601,42 +2654,47 @@ function renderPivotBody(dates, allRows){
   }
 
   // ── Render body ──
+  function cellHtml(v, gap, isToday){
+    const cls='pivot-td num-cell '+(v>0?'has-val':(gap?'gap-cell':'zero'))+(isToday?' is-today':'');
+    const dot=gap?'<span class="gap-dot" title="No activity since last active day"></span>':'';
+    return '<td class="'+cls+'" style="width:'+COL_W+'px;">'+(v>0?v:'')+dot+'</td>';
+  }
+
   let rowNum=0;
   tbody.innerHTML=bodyRows.map(({acct,acctCells,acctRowTotal,subRows})=>{
     rowNum++;
     const single=subRows.length===1;
+    const rowCells=single?subRows[0].cells:acctCells;
+    const marked=markGaps(rowCells, dates, todayKey);
 
-    const mainRow='<tr class="pivot-acct-row">'
-      +'<td class="pivot-td sticky-left" style="width:'+NUM_W+'px;text-align:center;color:var(--muted);font-size:11px;">'+rowNum+'</td>'
+    const mainRow='<tr class="pivot-acct-row'+(rowNum%2===0?' alt':'')+'">'
+      +'<td class="pivot-td sticky-left row-num" style="width:'+NUM_W+'px;">'+rowNum+'</td>'
       +'<td class="pivot-td sticky-left acct-cell" style="width:'+ACCT_W+'px;left:'+NUM_W+'px;" title="'+esc(acct)+'">'+esc(acct)+'</td>'
       +'<td class="pivot-td person-cell" style="width:'+PERSON_W+'px;">'+esc(single?subRows[0].person:'')+'</td>'
-      +(single
-        ? markGaps(subRows[0].cells).map(({v,gap})=>'<td class="pivot-td num-cell '+(v>0?'has-val':(gap?'gap-cell':'zero'))+'" style="width:'+COL_W+'px;text-align:right;padding-right:10px;">'+(v>0?v:'')+'</td>').join('')
-        : markGaps(acctCells).map(({v,gap})=>'<td class="pivot-td num-cell '+(v>0?'has-val':(gap?'gap-cell':'zero'))+'" style="width:'+COL_W+'px;text-align:right;padding-right:10px;">'+(v>0?v:'')+'</td>').join('')
-      )
-      +'<td style="width:'+TOT_W+'px;padding:7px 10px;border-left:2px solid var(--line);border-bottom:1px solid var(--line);text-align:right;font-weight:700;color:var(--accent);">'+acctRowTotal+'</td>'
+      +marked.map(({v,gap},i)=>cellHtml(v,gap,dates[i]===todayKey)).join('')
+      +'<td class="pivot-td total-cell" style="width:'+TOT_W+'px;">'+acctRowTotal+'</td>'
       +'</tr>';
 
     const subHtml=single?'':subRows.map(({person,cells,rowTotal})=>
       '<tr class="pivot-sub-row">'
       +'<td class="pivot-td sticky-left" style="width:'+NUM_W+'px;"></td>'
-      +'<td class="pivot-td sticky-left" style="width:'+ACCT_W+'px;left:'+NUM_W+'px;padding-left:18px;color:var(--muted);font-size:11px;"></td>'
-      +'<td class="pivot-td" style="width:'+PERSON_W+'px;color:var(--muted);font-size:12px;">'+esc(person)+'</td>'
-      +cells.map(v=>'<td class="pivot-td num-cell '+(v>0?'has-val':'zero')+'" style="width:'+COL_W+'px;text-align:right;padding-right:10px;">'+(v>0?v:'')+'</td>').join('')
-      +'<td style="width:'+TOT_W+'px;padding:7px 10px;border-left:2px solid var(--line);border-bottom:1px solid var(--line);text-align:right;color:var(--muted);">'+rowTotal+'</td>'
+      +'<td class="pivot-td sticky-left sub-indent" style="width:'+ACCT_W+'px;left:'+NUM_W+'px;"></td>'
+      +'<td class="pivot-td person-cell sub-person" style="width:'+PERSON_W+'px;">'+esc(person)+'</td>'
+      +cells.map((v,i)=>'<td class="pivot-td num-cell sub-num '+(v>0?'has-val':'zero')+(dates[i]===todayKey?' is-today':'')+'" style="width:'+COL_W+'px;">'+(v>0?v:'')+'</td>').join('')
+      +'<td class="pivot-td total-cell sub-total" style="width:'+TOT_W+'px;">'+rowTotal+'</td>'
       +'</tr>'
     ).join('');
 
     return mainRow+subHtml;
   }).join('');
 
-  // ── Footer (separate fixed table, widths match main) ──
-  tfoot.innerHTML='<tr style="background:var(--surface-2);font-weight:600;">'
-    +'<td style="width:'+NUM_W+'px;text-align:center;padding:9px 6px;border-right:1px solid var(--line-2);color:var(--muted);font-size:13px;">&Sigma;</td>'
-    +'<td style="width:'+ACCT_W+'px;padding:9px 10px;border-right:1px solid var(--line-2);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em;">TOTAL ('+accts.length+')</td>'
-    +'<td style="width:'+PERSON_W+'px;padding:9px 10px;border-right:1px solid var(--line-2);"></td>'
-    +dates.map(d=>'<td style="width:'+COL_W+'px;text-align:right;padding:9px 10px;border-right:1px solid var(--line-2);color:var(--accent);">'+(dateColTotals[d]>0?dateColTotals[d]:'')+'</td>').join('')
-    +'<td style="width:'+TOT_W+'px;text-align:right;padding:9px 10px;border-left:2px solid var(--line);color:var(--accent);font-size:14px;font-weight:700;">'+grandTotal+'</td>'
+  // ── Footer ──
+  tfoot.innerHTML='<tr>'
+    +'<td class="pf-cell pf-sigma" style="width:'+NUM_W+'px;">&Sigma;</td>'
+    +'<td class="pf-cell pf-label" style="width:'+ACCT_W+'px;">TOTAL <span class="pf-count">('+accts.length+')</span></td>'
+    +'<td class="pf-cell" style="width:'+PERSON_W+'px;"></td>'
+    +dates.map(d=>'<td class="pf-cell pf-num'+(d===todayKey?' is-today':'')+'" style="width:'+COL_W+'px;">'+(dateColTotals[d]>0?dateColTotals[d]:'&middot;')+'</td>').join('')
+    +'<td class="pf-cell pf-grand" style="width:'+TOT_W+'px;">'+grandTotal+'</td>'
     +'</tr>';
 }
 
