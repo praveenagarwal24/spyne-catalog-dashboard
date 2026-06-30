@@ -2497,16 +2497,15 @@ function renderPivotTable(){
 }
 
 function markGaps(cells){
-  // Only flag a zero cell as a "gap" if it falls between the first and last
-  // non-zero cell in this row. Leading/trailing zeros (before first activity
-  // or after last activity in the visible range) are NOT gaps.
-  const firstIdx=cells.findIndex(v=>v>0);
-  let lastIdx=-1;
-  for(let i=cells.length-1;i>=0;i--){ if(cells[i]>0){ lastIdx=i; break; } }
-  return cells.map((v,i)=>({
-    v,
-    gap: v===0 && firstIdx!==-1 && lastIdx!==-1 && i>firstIdx && i<lastIdx
-  }));
+  // D-1 rule: once an account has had activity, every subsequent zero day
+  // is a gap (carries forward through consecutive silent days) until
+  // activity resumes. First column is never flagged (no prior day to compare).
+  let everActive=false;
+  return cells.map((v,i)=>{
+    const gap = v===0 && everActive;
+    if(v>0) everActive=true;
+    return {v, gap};
+  });
 }
 
 function renderPivotBody(dates, allRows){
