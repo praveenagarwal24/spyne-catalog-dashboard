@@ -1240,13 +1240,16 @@ function buildTrendBuckets(rows, range){
   else { from=new Date(now.getFullYear(),0,1); to=new Date(tod); granularity='month'; } // all/year
 
   const buckets=[];
+  function localKey(d){
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
   if(granularity==='day'){
     const cur=new Date(from);
     while(cur<=to){
       const d=new Date(cur);
       buckets.push({
         label:d.toLocaleDateString('en-US',{month:'short',day:'numeric'}),
-        key:d.toISOString().slice(0,10),
+        key:localKey(d),
         vins:0,images:0,ents:new Set(),_rooftops:new Set(),typeMap:{},personMap:{}
       });
       cur.setDate(cur.getDate()+1);
@@ -2444,11 +2447,11 @@ function getPivotDates(){
   else if(pivotRange==='this_month'){from=new Date(now.getFullYear(),now.getMonth(),1);to=new Date(tod);}
   else if(pivotRange==='last_month'){from=new Date(now.getFullYear(),now.getMonth()-1,1);to=new Date(now.getFullYear(),now.getMonth(),0);}
   else{from=ago(6);to=new Date(tod);}
-  // Build array of date strings
+  // Build array of date strings (local, not UTC, to avoid timezone shift)
   const dates=[];
   const cur=new Date(from);
   while(cur<=to){
-    dates.push(cur.toISOString().slice(0,10));
+    dates.push(cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0'));
     cur.setDate(cur.getDate()+1);
   }
   return {dates, from, to};
