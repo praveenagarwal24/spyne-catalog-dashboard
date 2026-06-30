@@ -793,6 +793,22 @@ const charts = {};
 const MONTHS_ORDER = [];
 
 const F = { from:null, to:null, preset:'last_30', seg:null, type:null, person:null, stage:'', entname:null, rooftop:null, dms:null };
+
+// ----------------------------------------
+// CARD-LEVEL FILTER OVERRIDE
+// ----------------------------------------
+// Cards with their own tabs/chips (Trend, VIN type breakdown, User efficiency,
+// DMS, Daily Pivot) normally inherit the main top-bar filters. The moment a
+// user touches one of that card's own controls, the card "detaches" from the
+// main filters and switches to the full unfiltered dataset (RAW_VIN) instead
+// of window._lastFilteredRows. Touching ANY main filter control again resets
+// every card back to inheriting the main filters.
+const cardOverride = new Set(); // card keys: 'trend','typeMom','user','dms','pivot'
+
+function detachCard(key){ cardOverride.add(key); }
+function resetCardOverrides(){ cardOverride.clear(); }
+function cardRows(key){ return cardOverride.has(key) ? RAW_VIN : (window._lastFilteredRows||[]); }
+
 let trendRange = 'last_3_months'; // owns the trend chart date range independently
 let userRange = 'all';
 let userChartMode = 'bar';
@@ -1378,6 +1394,7 @@ function renderMetricChips(){
   }).join('');
   wrap.querySelectorAll('.metric-chip').forEach(chip=>{
     chip.addEventListener('click',()=>{
+      detachCard('trend');
       const key=chip.dataset.mk;
       if(trendMetrics.has(key)){
         // Only remove if at least 1 other metric will remain
@@ -1387,7 +1404,7 @@ function renderMetricChips(){
       }
       renderMetricChips();
       killChart('cTrend');
-      renderTrend(window._lastFilteredRows||[]);
+      renderTrend(cardRows('trend'));
     });
   });
 }
@@ -1704,12 +1721,13 @@ function renderTypeMom(rows){
 
   legend.querySelectorAll('.type-legend-chip').forEach(chip=>{
     chip.addEventListener('click',()=>{
+      detachCard('typeMom');
       const t=chip.dataset.type;
       const currentlyHidden=typeHidden.has(t);
       // Don't allow hiding all — must keep at least 1 visible
       if(!currentlyHidden && typeList.filter(x=>!typeHidden.has(x)).length<=1) return;
       if(currentlyHidden) typeHidden.delete(t); else typeHidden.add(t);
-      renderTypeMom(window._lastFilteredRows||[]);
+      renderTypeMom(cardRows('typeMom'));
     });
   });
 
@@ -1758,7 +1776,7 @@ function renderUserChart(){
   killChart('cUserEff');
   const canvas=$('cUserEff');
   if(!canvas) return;
-  const rows=window._lastFilteredRows||[];
+  const rows=cardRows('user');
   if(!rows.length) return;
 
   const {buckets, granularity}=buildTrendBuckets(rows, userRange);
@@ -1864,6 +1882,7 @@ function renderUserChart(){
     }).join('');
     legend.querySelectorAll('.type-legend-chip').forEach(chip=>{
       chip.addEventListener('click',()=>{
+        detachCard('user');
         const p=chip.dataset.person;
         const hidden=userPersonHidden.has(p);
         if(!hidden&&persons.filter(x=>!userPersonHidden.has(x)).length<=1) return;
@@ -2087,7 +2106,7 @@ $('modalClose').addEventListener('click',()=>$('modal').classList.remove('show')
 const DMS_COLORS = ['#6b9eff','#4ade80','#f5c265','#c084fc','#38bdf8','#f87171','#fb923c','#a3e635','#22d3ee','#818cf8','#fbbf24'];
 
 function renderDmsAnalytics(){
-  var rows = window._lastFilteredRows||[];
+  var rows = cardRows('dms');
   if(!rows.length) return;
 
   // Aggregate per DMS
@@ -2507,7 +2526,7 @@ function getPivotDates(){
 
 function renderPivotTable(){
   const {dates, from, to} = getPivotDates();
-  const rows = window._lastFilteredRows||[];
+  const rows = cardRows('pivot');
 
   // Render type chips
   const chipsEl = $('pivotTypeChips');
@@ -2521,6 +2540,7 @@ function renderPivotTable(){
     }).join('');
     chipsEl.querySelectorAll('.type-legend-chip').forEach(chip=>{
       chip.addEventListener('click',()=>{
+        detachCard('pivot');
         const t=chip.dataset.ptype;
         if(pivotActiveTypes.has(t)){if(pivotActiveTypes.size>1)pivotActiveTypes.delete(t);}
         else pivotActiveTypes.add(t);
@@ -2532,7 +2552,7 @@ function renderPivotTable(){
           const col2=c2.style.color; // keep existing color
           c2.style.borderColor=on2?col2:'var(--line)';
         });
-        renderPivotBody(dates, rows);
+        renderPivotBody(dates, cardRows('pivot'));
       });
     });
   }
@@ -2728,6 +2748,7 @@ function paint(){
 }
 
 function refresh(){
+  resetCardOverrides(); // touching any main filter re-attaches every card
   Object.keys(charts).forEach(id=>killChart(id));
   paint();
 }
@@ -2951,31 +2972,36 @@ $('calNext').addEventListener('click',e=>{e.stopPropagation();cal.view=new Date(
 // ----------------------------------------
 $('chartTypeTabs').addEventListener('click',e=>{
   const b=e.target.closest('[data-ct]');if(!b)return;
+  detachCard('trend');
   trendChartType=b.dataset.ct;
   $('chartTypeTabs').querySelectorAll('[data-ct]').forEach(t=>t.classList.toggle('sel',t===b));
-  killChart('cTrend');renderTrend(window._lastFilteredRows||[]);
+  killChart('cTrend');renderTrend(cardRows('trend'));
 });
 $('trendRangeTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
+  detachCard('trend');
   trendRange=b.dataset.tr;
   $('trendRangeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
-  killChart('cTrend');renderTrend(window._lastFilteredRows||[]);
+  killChart('cTrend');renderTrend(cardRows('trend'));
 });
 $('typeRangeTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
+  detachCard('typeMom');
   typeRange=b.dataset.tr;
   $('typeRangeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
   typeHidden=new Set();
-  killChart('cTypeMom');renderTypeMom(window._lastFilteredRows||[]);
+  killChart('cTypeMom');renderTypeMom(cardRows('typeMom'));
 });
 $('typeTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
+  detachCard('typeMom');
   typeChartMode=b.dataset.t;
   $('typeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
-  killChart('cTypeMom');renderTypeMom(window._lastFilteredRows||[]);
+  killChart('cTypeMom');renderTypeMom(cardRows('typeMom'));
 });
 $('userRangeTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
+  detachCard('user');
   userRange=b.dataset.ur;
   $('userRangeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
   userPersonHidden=new Set();
@@ -2983,6 +3009,7 @@ $('userRangeTabs').addEventListener('click',e=>{
 });
 $('userChartTypeTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
+  detachCard('user');
   userChartMode=b.dataset.uct;
   $('userChartTypeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
   renderUserChart();
@@ -2994,6 +3021,7 @@ document.addEventListener('click',e=>{
 });
 $('userMetricTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
+  detachCard('user');
   userMetric=b.dataset.u;
   $('userMetricTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
   const k=aggregate(RAW_VIN.filter(passesFilters));
@@ -3009,6 +3037,7 @@ $('resetBtn').addEventListener('click',()=>{
 });
 $('dmsRangeTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
+  detachCard('dms');
   dmsRange=b.dataset.dr;
   $('dmsRangeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
   dmsHidden=new Set();
@@ -3016,6 +3045,7 @@ $('dmsRangeTabs').addEventListener('click',e=>{
 });
 $('dmsChartTypeTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
+  detachCard('dms');
   dmsChartMode=b.dataset.dct;
   $('dmsChartTypeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
   renderDmsAnalytics();
@@ -3025,6 +3055,7 @@ $('entSearch').addEventListener('input',()=>sortAndRenderEntTable());
 $('userSearch').addEventListener('input',()=>sortAndRenderUserTable());
 $('pivotRangeTabs').addEventListener('click',e=>{
   const b=e.target.closest('.trend-tab');if(!b)return;
+  detachCard('pivot');
   pivotRange=b.dataset.pr;
   $('pivotRangeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
   renderPivotTable();
@@ -3032,7 +3063,7 @@ $('pivotRangeTabs').addEventListener('click',e=>{
 $('pivotSearch').addEventListener('input',e=>{
   pivotSearch=e.target.value;
   const {dates}=getPivotDates();
-  renderPivotBody(dates, window._lastFilteredRows||[]);
+  renderPivotBody(dates, cardRows('pivot'));
 });
 $('entTBody').addEventListener('click',e=>{const tr=e.target.closest('tr[data-eid]');if(tr)drillEnt(tr.dataset.eid);});
 $('exportBtn').addEventListener('click',()=>{
