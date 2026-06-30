@@ -2623,7 +2623,7 @@ function renderPivotBody(dates, allRows){
       +'<td class="pivot-td sticky-left" style="width:'+NUM_W+'px;"></td>'
       +'<td class="pivot-td sticky-left" style="width:'+ACCT_W+'px;left:'+NUM_W+'px;padding-left:18px;color:var(--muted);font-size:11px;"></td>'
       +'<td class="pivot-td" style="width:'+PERSON_W+'px;color:var(--muted);font-size:12px;">'+esc(person)+'</td>'
-      +markGaps(cells).map(({v,gap})=>'<td class="pivot-td num-cell '+(v>0?'has-val':(gap?'gap-cell':'zero'))+'" style="width:'+COL_W+'px;text-align:right;padding-right:10px;">'+(v>0?v:'')+'</td>').join('')
+      +cells.map(v=>'<td class="pivot-td num-cell '+(v>0?'has-val':'zero')+'" style="width:'+COL_W+'px;text-align:right;padding-right:10px;">'+(v>0?v:'')+'</td>').join('')
       +'<td style="width:'+TOT_W+'px;padding:7px 10px;border-left:2px solid var(--line);border-bottom:1px solid var(--line);text-align:right;color:var(--muted);">'+rowTotal+'</td>'
       +'</tr>'
     ).join('');
