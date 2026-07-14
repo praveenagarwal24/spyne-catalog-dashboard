@@ -995,6 +995,7 @@ async function loadAll(){
       r._masterStage=(m&&m['Account Stage'])||'';
       r._masterSegment=(m&&(m['customer_segment']||r['customer_segment']))||r['customer_segment']||'';
       r._dms=(r['DMS']||'').trim();
+      r._catalogueStage=(m&&m['Stage'])||'';
       RAW_VIN.push(r);
       if(r._month) allDates.add(r._month);
     }
@@ -2797,12 +2798,13 @@ function renderNdaTable(){
 
   // For each account that has ever had NDA rows, find:
   //   lastRealDate = last date with a non-NDA VIN
-  //   lastNdaDate  = last date with an NDA VIN
-  // "Days since real data" = days since lastRealDate (the actual metric)
+  // Only include accounts where Master Stage = "Catalogue"
   const acctMap = {};
   for(const r of RAW_VIN){
     const acct=(r['Account Name']||'').trim(); if(!acct) continue;
-    if(r['Type']!=='No Data Available') continue; // only process accounts that have NDA rows
+    if(r['Type']!=='No Data Available') continue;
+    // Only Catalogue stage accounts
+    if(!r._catalogueStage||r._catalogueStage.trim().toLowerCase()!=='catalogue') continue;
     // Mark as NDA account - will look up real data separately
     if(!acctMap[acct]) acctMap[acct]={
       lastRealDate:null, lastNdaDate:null,
@@ -2815,10 +2817,10 @@ function renderNdaTable(){
     if(!acctMap[acct].eid) acctMap[acct].eid=(r['Enterprise ID']||'').trim();
   }
 
-  // Now find last real VIN date for each NDA account
+  // Now find last real VIN date for each Catalogue NDA account
   for(const r of RAW_VIN){
     const acct=(r['Account Name']||'').trim();
-    if(!acctMap[acct]) continue; // not an NDA account
+    if(!acctMap[acct]) continue; // not a Catalogue NDA account
     if(r['Type']==='No Data Available') continue; // skip NDA rows
     if(r._date&&(!acctMap[acct].lastRealDate||r._date>acctMap[acct].lastRealDate))
       acctMap[acct].lastRealDate=r._date;
