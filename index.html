@@ -184,8 +184,14 @@ main{padding:22px 28px 80px;max-width:1600px;margin:0 auto;}
 .pivot-td.num-cell.has-val{color:var(--ink);font-weight:500;}
 .pivot-td.num-cell.zero{color:var(--line-2);}
 .pivot-td.num-cell.gap-cell{color:var(--red);position:relative;}
-.nda-cell{color:var(--amber) !important;position:relative;}
-.nda-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--amber);opacity:.9;vertical-align:middle;margin-left:2px;}
+.nda-cell{position:relative;}
+.nda-label{
+  display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;
+  letter-spacing:.04em;color:var(--amber);background:rgba(245,194,101,.15);
+  border:1px solid rgba(245,194,101,.4);border-radius:3px;
+  padding:1px 4px;vertical-align:middle;margin-left:3px;line-height:1.4;
+}
+.nda-label.nda-only{margin-left:0;}
 .gap-dot{
   display:inline-block;width:5px;height:5px;border-radius:50%;
   background:var(--red);opacity:.85;vertical-align:middle;
@@ -2717,15 +2723,16 @@ function renderPivotBody(dates, allRows){
 
   // ── Render body ──
   function cellHtml(v, gap, isToday, ndaCount){
-    // Priority: has value > NDA-only > gap > zero
+    // Priority: has real VINs > NDA-only > gap > zero
     const hasNda = ndaCount>0;
     const cls='pivot-td num-cell '+(v>0?'has-val':(gap?'gap-cell':(hasNda?'nda-cell':'zero')))+(isToday?' is-today':'');
     let inner='';
     if(v>0){
       inner=String(v);
-      if(hasNda) inner+='<span class="nda-dot" title="'+ndaCount+' No Data Available VINs"></span>';
+      if(hasNda) inner+='<span class="nda-label" title="'+ndaCount+' No Data Available VINs">NDA</span>';
     } else if(hasNda){
-      inner='<span class="nda-dot" title="'+ndaCount+' No Data Available VINs only — no real inventory"></span>';
+      // Only NDA VINs — no real inventory
+      inner='<span class="nda-label nda-only" title="'+ndaCount+' No Data Available VINs — no real inventory">NDA</span>';
     } else if(gap){
       inner='<span class="gap-dot" title="No activity since last active day"></span>';
     }
@@ -3261,7 +3268,7 @@ $('ndaEmailBtn').addEventListener('click',()=>{
     body+='\n';
   }
   body+='Total: '+list.length+' accounts | '+list.reduce((s,r)=>s+r.totalNDA,0)+' NDA VINs\n\nSource: Spyne Catalog Dashboard\n';
-  window.location.href='mailto:?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  const a=document.createElement('a');a.href='mailto:?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);document.body.appendChild(a);a.click();document.body.removeChild(a);
 });
 $('entTBody').addEventListener('click',e=>{const tr=e.target.closest('tr[data-eid]');if(tr)drillEnt(tr.dataset.eid);});
 $('exportBtn').addEventListener('click',()=>{
