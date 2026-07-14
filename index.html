@@ -2792,35 +2792,76 @@ let ndaAgingMin = 0; // days filter: 0=all, 7=7+, etc.
 
 function renderNdaTable(){
   if(!$('ndaTHead')||!$('ndaTBody')) return;
-  const rows = window._lastFilteredRows||[];
+  // Use full RAW_VIN regardless of date filter — we want real last-data date ever
   const today = new Date();
 
-  // Build NDA map: acct -> {lastNDA, totalNDA, ents:Set, csm, segment}
-  const ndaMap = {};
-  for(const r of rows){
-    if(r['Type']!=='No Data Available') continue;
+  // For each account that has ever had NDA rows, find:
+  //   lastRealDate = last date with a non-NDA VIN
+  //   lastNdaDate  = last date with an NDA VIN
+  // "Days since real data" = days since lastRealDate (the actual metric)
+  const acctMap = {};
+  for(const r of RAW_VIN){
     const acct=(r['Account Name']||'').trim(); if(!acct) continue;
-    if(!ndaMap[acct]) ndaMap[acct]={lastNDA:null,totalNDA:0,csm:'',segment:'',eid:''};
-    ndaMap[acct].totalNDA++;
-    if(r._date&&(!ndaMap[acct].lastNDA||r._date>ndaMap[acct].lastNDA)) ndaMap[acct].lastNDA=r._date;
-    if(!ndaMap[acct].csm&&r['CSM']) ndaMap[acct].csm=r['CSM'];
-    if(!ndaMap[acct].segment) ndaMap[acct].segment=r._masterSegment||'';
-    if(!ndaMap[acct].eid) ndaMap[acct].eid=(r['Enterprise ID']||'').trim();
+    if(r['Type']!=='No Data Available') continue; // only process accounts that have NDA rows
+    // Mark as NDA account - will look up real data separately
+    if(!acctMap[acct]) acctMap[acct]={
+      lastRealDate:null, lastNdaDate:null,
+      csm:'', segment:'', eid:''
+    };
+    if(r._date&&(!acctMap[acct].lastNdaDate||r._date>acctMap[acct].lastNdaDate))
+      acctMap[acct].lastNdaDate=r._date;
+    if(!acctMap[acct].csm) acctMap[acct].csm=(r['CSM']||'');
+    if(!acctMap[acct].segment) acctMap[acct].segment=r._masterSegment||'';
+    if(!acctMap[acct].eid) acctMap[acct].eid=(r['Enterprise ID']||'').trim();
   }
 
-  let list = Object.entries(ndaMap).map(([name,v])=>{
-    const days = v.lastNDA?Math.floor((today-v.lastNDA)/86400000):null;
-    return {name, totalNDA:v.totalNDA, lastNDA:v.lastNDA, days, csm:v.csm, segment:v.segment, eid:v.eid};
-  }).filter(d=>ndaAgingMin===0 || (d.days!==null&&d.days>=ndaAgingMin));
+  // Now find last real VIN date for each NDA account
+  for(const r of RAW_VIN){
+    const acct=(r['Account Name']||'').trim();
+    if(!acctMap[acct]) continue; // not an NDA account
+    if(r['Type']==='No Data Available') continue; // skip NDA rows
+    if(r._date&&(!acctMap[acct].lastRealDate||r._date>acctMap[acct].lastRealDate))
+      acctMap[acct].lastRealDate=r._date;
+  }
 
-  // Sort by days desc (most stale first)
-  list.sort((a,b)=>(b.days||0)-(a.days||0));
+  // Apply non-date filters
+  let list = Object.entries(acctMap).map(([name,v])=>{
+    // Skip if non-date filters exclude this account
+    if(F.seg&&F.seg.size>0&&!setHasCI(F.seg,v.segment)) return null;
+    if(F.entname&&F.entname.size>0&&!setHasCI(F.entname,name)) return null;
 
-  // Store for email
+    // Days since last REAL data
+    const daysSinceReal = v.lastRealDate
+      ? Math.floor((today - v.lastRealDate) / 86400000)
+      : null;
+
+    // Only include if no real data recently — or never had real data
+    // (If lastRealDate is null, they've never had real VINs — always show)
+    return {
+      name,
+      lastRealDate: v.lastRealDate,
+      lastNdaDate:  v.lastNdaDate,
+      days:         daysSinceReal,
+      csm:          v.csm,
+      segment:      v.segment,
+      eid:          v.eid
+    };
+  }).filter(Boolean);
+
+  // Apply aging filter
+  list = list.filter(d => ndaAgingMin===0 || (d.days===null) || d.days>=ndaAgingMin);
+
+  // Sort: accounts with no real data ever first, then by most days since real data
+  list.sort((a,b)=>(b.days===null?99999:b.days)-(a.days===null?99999:a.days));
+
   window._ndaList = list;
 
   function agingBadge(days){
-    if(days===null) return '<span style="color:var(--muted)">—</span>';
+    if(days===null){
+      return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--red)">'
+        +'<span style="width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block;flex-shrink:0;"></span>'
+        +'Never</span>';
+    }
     const col = days>=30?'var(--red)':days>=14?'var(--amber)':'var(--green)';
     return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:'+col+'">'
       +'<span style="width:7px;height:7px;border-radius:50%;background:'+col+';display:inline-block;flex-shrink:0;"></span>'
@@ -2831,14 +2872,13 @@ function renderNdaTable(){
     +'<th class="num">#</th>'
     +'<th>Account</th>'
     +'<th class="num">Segment</th>'
-    +'<th class="num">NDA VINs</th>'
-    +'<th class="num">Last NDA date</th>'
-    +'<th class="num">Days since</th>'
+    +'<th class="num">Last real data</th>'
+    +'<th class="num">Days without data</th>'
     +'<th>CSM</th>'
     +'</tr>';
 
   if(!list.length){
-    $('ndaTBody').innerHTML='<tr><td colspan="7" style="padding:30px;text-align:center;color:var(--muted)">No NDA accounts in current filter</td></tr>';
+    $('ndaTBody').innerHTML='<tr><td colspan="6" style="padding:30px;text-align:center;color:var(--muted)">No NDA accounts in current filter</td></tr>';
     $('ndaTFoot').innerHTML='';
     if($('ndaSub')) $('ndaSub').textContent='No NDA accounts in current view';
     return;
@@ -2846,34 +2886,34 @@ function renderNdaTable(){
 
   $('ndaTBody').innerHTML=list.map((d,i)=>{
     const segPill=d.segment?('<span class="pill '+(d.segment==='Ent'?'live':d.segment==='SMB'?'upload':'other')+'">'+esc(d.segment)+'</span>'):'—';
-    const lastDate=d.lastNDA?d.lastNDA.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
+    const lastReal=d.lastRealDate
+      ?d.lastRealDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
+      :'<span style="color:var(--red);font-size:11px;">Never had real data</span>';
     return '<tr style="cursor:pointer" data-eid="'+esc(d.eid)+'">'
       +'<td class="td-num" style="color:var(--muted);font-size:11px;">'+(i+1)+'</td>'
       +'<td><b>'+esc(d.name)+'</b></td>'
       +'<td class="td-num">'+segPill+'</td>'
-      +'<td class="td-num mono" style="color:var(--amber)">'+num(d.totalNDA)+'</td>'
-      +'<td class="td-num mono">'+lastDate+'</td>'
+      +'<td class="td-num mono">'+lastReal+'</td>'
       +'<td class="td-num">'+agingBadge(d.days)+'</td>'
       +'<td>'+esc(d.csm||'—')+'</td>'
       +'</tr>';
   }).join('');
 
-  // Click to drill
   $('ndaTBody').querySelectorAll('tr[data-eid]').forEach(tr=>{
     tr.addEventListener('click',()=>{if(tr.dataset.eid) drillEnt(tr.dataset.eid);});
   });
 
-  // Totals footer
-  const totNDA=list.reduce((s,r)=>s+r.totalNDA,0);
-  const over30=list.filter(d=>d.days>=30).length;
-  const over14=list.filter(d=>d.days>=14&&d.days<30).length;
+  const never=list.filter(d=>d.days===null).length;
+  const over30=list.filter(d=>d.days!==null&&d.days>=30).length;
+  const over14=list.filter(d=>d.days!==null&&d.days>=14&&d.days<30).length;
   const under14=list.filter(d=>d.days!==null&&d.days<14).length;
+
   if($('ndaTFoot')) $('ndaTFoot').innerHTML='<tr style="font-weight:600;background:var(--surface-2)">'
     +'<td class="mono" style="font-size:11px;letter-spacing:.06em;color:var(--muted);padding:10px 14px" colspan="2">TOTAL ('+list.length+' accounts)</td>'
     +'<td class="td-num">—</td>'
-    +'<td class="td-num mono" style="color:var(--amber)">'+num(totNDA)+'</td>'
     +'<td class="td-num">—</td>'
     +'<td class="td-num" style="font-size:11px;">'
+      +(never?'<span style="color:var(--red)">'+never+'</span> never &nbsp;':'')
       +'<span style="color:var(--red)">'+over30+'</span> &ge;30d &nbsp;'
       +'<span style="color:var(--amber)">'+over14+'</span> 14-29d &nbsp;'
       +'<span style="color:var(--green)">'+under14+'</span> &lt;14d'
@@ -2881,17 +2921,15 @@ function renderNdaTable(){
     +'<td>—</td>'
     +'</tr>';
 
-  if($('ndaSub')) $('ndaSub').textContent=list.length+' NDA accounts · '
-    +over30+' critical ≥30d · '+over14+' warning 14-29d · '+under14+' recent <14d';
+  if($('ndaSub')) $('ndaSub').textContent=list.length+' accounts with NDA · '
+    +(never?never+' never had real data · ':'')+over30+' critical ≥30d · '+over14+' warning 14-29d · '+under14+' recent <14d';
 
-  // Sync col widths
   setTimeout(()=>{
     const ths=$('ndaTHead').querySelectorAll('th');
     const tds=$('ndaTFoot').querySelectorAll('td');
     if(tds.length>=ths.length) ths.forEach((th,i)=>{if(tds[i]){tds[i].style.width=th.offsetWidth+'px';tds[i].style.minWidth=th.offsetWidth+'px';}});
   },60);
 }
-
 
 function paint(){
   const filtered=RAW_VIN.filter(passesFilters);
