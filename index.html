@@ -184,6 +184,8 @@ main{padding:22px 28px 80px;max-width:1600px;margin:0 auto;}
 .pivot-td.num-cell.has-val{color:var(--ink);font-weight:500;}
 .pivot-td.num-cell.zero{color:var(--line-2);}
 .pivot-td.num-cell.gap-cell{color:var(--red);position:relative;}
+.nda-cell{color:var(--amber) !important;position:relative;}
+.nda-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--amber);opacity:.9;vertical-align:middle;margin-left:2px;}
 .gap-dot{
   display:inline-block;width:5px;height:5px;border-radius:50%;
   background:var(--red);opacity:.85;vertical-align:middle;
@@ -762,6 +764,39 @@ tr:hover td{background:var(--bg);}
         <table id="pivotFootTable" style="border-collapse:collapse;white-space:nowrap;font-size:12px;table-layout:fixed;">
           <tbody id="pivotTFoot"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+  <!-- ── NDA Aging Table ── -->
+  <div class="section-label" style="margin-top:8px;">No Data Available · Account Aging</div>
+  <div class="panel-grid">
+    <div class="panel p-full" style="padding:0;">
+      <div class="panel-header" style="padding:14px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:0;flex-wrap:wrap;gap:10px;">
+        <div class="panel-title-wrap">
+          <h3>NDA accounts</h3>
+          <div class="panel-sub" id="ndaSub">accounts with No Data Available VINs · aging since last NDA date</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div class="trend-tabs" id="ndaAgingFilter">
+            <button class="trend-tab sel" data-aging="all">All</button>
+            <button class="trend-tab" data-aging="7">7+ days</button>
+            <button class="trend-tab" data-aging="14">14+ days</button>
+            <button class="trend-tab" data-aging="30">30+ days</button>
+          </div>
+          <button id="ndaEmailBtn" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;background:var(--accent);color:#fff;border:none;font:600 13px 'Inter';cursor:pointer;white-space:nowrap;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="14" height="10" rx="2"/><polyline points="1,5 8,9 15,5"/></svg>
+            Email list
+          </button>
+        </div>
+      </div>
+      <div class="table-scroll" style="max-height:360px;overflow-y:auto;">
+        <table>
+          <thead id="ndaTHead"></thead>
+          <tbody id="ndaTBody"><tr><td colspan="7" style="padding:30px;text-align:center;color:var(--muted)">Loading...</td></tr></tbody>
+        </table>
+      </div>
+      <div style="border-top:2px solid var(--line-2);">
+        <table style="width:100%;"><tbody id="ndaTFoot"></tbody></table>
       </div>
     </div>
   </div>
@@ -2600,14 +2635,21 @@ function renderPivotBody(dates, allRows){
   });
 
   const pivot={};
+  const pivotNDA={}; // acct -> date -> nda count
   for(const r of filtered){
     const acct=(r['Account Name']||r['Enterprise ID']||'(unknown)').trim();
     if(q && !acct.toLowerCase().includes(q)) continue;
     const person=(r['Person Responsible']||'(unassigned)').trim();
     const dk=r._dateKey;
+    if(!dk) continue;
     if(!pivot[acct]) pivot[acct]={};
     if(!pivot[acct][person]) pivot[acct][person]={};
     pivot[acct][person][dk]=(pivot[acct][person][dk]||0)+1;
+    // Track NDA cells separately for distinct marking
+    if(r['Type']==='No Data Available'){
+      if(!pivotNDA[acct]) pivotNDA[acct]={};
+      pivotNDA[acct][dk]=(pivotNDA[acct][dk]||0)+1;
+    }
   }
 
   const accts=Object.keys(pivot).sort();
@@ -2674,10 +2716,20 @@ function renderPivotBody(dates, allRows){
   }
 
   // ── Render body ──
-  function cellHtml(v, gap, isToday){
-    const cls='pivot-td num-cell '+(v>0?'has-val':(gap?'gap-cell':'zero'))+(isToday?' is-today':'');
-    const dot=gap?'<span class="gap-dot" title="No activity since last active day"></span>':'';
-    return '<td class="'+cls+'" style="width:'+COL_W+'px;">'+(v>0?v:'')+dot+'</td>';
+  function cellHtml(v, gap, isToday, ndaCount){
+    // Priority: has value > NDA-only > gap > zero
+    const hasNda = ndaCount>0;
+    const cls='pivot-td num-cell '+(v>0?'has-val':(gap?'gap-cell':(hasNda?'nda-cell':'zero')))+(isToday?' is-today':'');
+    let inner='';
+    if(v>0){
+      inner=String(v);
+      if(hasNda) inner+='<span class="nda-dot" title="'+ndaCount+' No Data Available VINs"></span>';
+    } else if(hasNda){
+      inner='<span class="nda-dot" title="'+ndaCount+' No Data Available VINs only — no real inventory"></span>';
+    } else if(gap){
+      inner='<span class="gap-dot" title="No activity since last active day"></span>';
+    }
+    return '<td class="'+cls+'" style="width:'+COL_W+'px;">'+inner+'</td>';
   }
 
   let rowNum=0;
@@ -2691,7 +2743,7 @@ function renderPivotBody(dates, allRows){
       +'<td class="pivot-td sticky-left row-num" style="width:'+NUM_W+'px;">'+rowNum+'</td>'
       +'<td class="pivot-td sticky-left acct-cell" style="width:'+ACCT_W+'px;left:'+NUM_W+'px;" title="'+esc(acct)+'">'+esc(acct)+'</td>'
       +'<td class="pivot-td person-cell" style="width:'+PERSON_W+'px;">'+esc(single?subRows[0].person:'')+'</td>'
-      +marked.map(({v,gap},i)=>cellHtml(v,gap,dates[i]===todayKey)).join('')
+      +marked.map(({v,gap},i)=>{const ndaC=(pivotNDA[acct]&&pivotNDA[acct][dates[i]])||0; return cellHtml(v,gap,dates[i]===todayKey,ndaC);}).join('')
       +'<td class="pivot-td total-cell" style="width:'+TOT_W+'px;">'+acctRowTotal+'</td>'
       +'</tr>';
 
@@ -2716,6 +2768,114 @@ function renderPivotBody(dates, allRows){
     +dates.map(d=>'<td class="pf-cell pf-num'+(d===todayKey?' is-today':'')+'" style="width:'+COL_W+'px;">'+(dateColTotals[d]>0?dateColTotals[d]:'&middot;')+'</td>').join('')
     +'<td class="pf-cell pf-grand" style="width:'+TOT_W+'px;">'+grandTotal+'</td>'
     +'</tr>';
+}
+
+
+// ----------------------------------------
+// NDA AGING TABLE
+// ----------------------------------------
+let ndaAgingMin = 0; // days filter: 0=all, 7=7+, etc.
+
+function renderNdaTable(){
+  if(!$('ndaTHead')||!$('ndaTBody')) return;
+  const rows = window._lastFilteredRows||[];
+  const today = new Date();
+
+  // Build NDA map: acct -> {lastNDA, totalNDA, ents:Set, csm, segment}
+  const ndaMap = {};
+  for(const r of rows){
+    if(r['Type']!=='No Data Available') continue;
+    const acct=(r['Account Name']||'').trim(); if(!acct) continue;
+    if(!ndaMap[acct]) ndaMap[acct]={lastNDA:null,totalNDA:0,csm:'',segment:'',eid:''};
+    ndaMap[acct].totalNDA++;
+    if(r._date&&(!ndaMap[acct].lastNDA||r._date>ndaMap[acct].lastNDA)) ndaMap[acct].lastNDA=r._date;
+    if(!ndaMap[acct].csm&&r['CSM']) ndaMap[acct].csm=r['CSM'];
+    if(!ndaMap[acct].segment) ndaMap[acct].segment=r._masterSegment||'';
+    if(!ndaMap[acct].eid) ndaMap[acct].eid=(r['Enterprise ID']||'').trim();
+  }
+
+  let list = Object.entries(ndaMap).map(([name,v])=>{
+    const days = v.lastNDA?Math.floor((today-v.lastNDA)/86400000):null;
+    return {name, totalNDA:v.totalNDA, lastNDA:v.lastNDA, days, csm:v.csm, segment:v.segment, eid:v.eid};
+  }).filter(d=>ndaAgingMin===0 || (d.days!==null&&d.days>=ndaAgingMin));
+
+  // Sort by days desc (most stale first)
+  list.sort((a,b)=>(b.days||0)-(a.days||0));
+
+  // Store for email
+  window._ndaList = list;
+
+  function agingBadge(days){
+    if(days===null) return '<span style="color:var(--muted)">—</span>';
+    const col = days>=30?'var(--red)':days>=14?'var(--amber)':'var(--green)';
+    return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:'+col+'">'
+      +'<span style="width:7px;height:7px;border-radius:50%;background:'+col+';display:inline-block;flex-shrink:0;"></span>'
+      +days+'d</span>';
+  }
+
+  $('ndaTHead').innerHTML='<tr>'
+    +'<th class="num">#</th>'
+    +'<th>Account</th>'
+    +'<th class="num">Segment</th>'
+    +'<th class="num">NDA VINs</th>'
+    +'<th class="num">Last NDA date</th>'
+    +'<th class="num">Days since</th>'
+    +'<th>CSM</th>'
+    +'</tr>';
+
+  if(!list.length){
+    $('ndaTBody').innerHTML='<tr><td colspan="7" style="padding:30px;text-align:center;color:var(--muted)">No NDA accounts in current filter</td></tr>';
+    $('ndaTFoot').innerHTML='';
+    if($('ndaSub')) $('ndaSub').textContent='No NDA accounts in current view';
+    return;
+  }
+
+  $('ndaTBody').innerHTML=list.map((d,i)=>{
+    const segPill=d.segment?('<span class="pill '+(d.segment==='Ent'?'live':d.segment==='SMB'?'upload':'other')+'">'+esc(d.segment)+'</span>'):'—';
+    const lastDate=d.lastNDA?d.lastNDA.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
+    return '<tr style="cursor:pointer" data-eid="'+esc(d.eid)+'">'
+      +'<td class="td-num" style="color:var(--muted);font-size:11px;">'+(i+1)+'</td>'
+      +'<td><b>'+esc(d.name)+'</b></td>'
+      +'<td class="td-num">'+segPill+'</td>'
+      +'<td class="td-num mono" style="color:var(--amber)">'+num(d.totalNDA)+'</td>'
+      +'<td class="td-num mono">'+lastDate+'</td>'
+      +'<td class="td-num">'+agingBadge(d.days)+'</td>'
+      +'<td>'+esc(d.csm||'—')+'</td>'
+      +'</tr>';
+  }).join('');
+
+  // Click to drill
+  $('ndaTBody').querySelectorAll('tr[data-eid]').forEach(tr=>{
+    tr.addEventListener('click',()=>{if(tr.dataset.eid) drillEnt(tr.dataset.eid);});
+  });
+
+  // Totals footer
+  const totNDA=list.reduce((s,r)=>s+r.totalNDA,0);
+  const over30=list.filter(d=>d.days>=30).length;
+  const over14=list.filter(d=>d.days>=14&&d.days<30).length;
+  const under14=list.filter(d=>d.days!==null&&d.days<14).length;
+  if($('ndaTFoot')) $('ndaTFoot').innerHTML='<tr style="font-weight:600;background:var(--surface-2)">'
+    +'<td class="mono" style="font-size:11px;letter-spacing:.06em;color:var(--muted);padding:10px 14px" colspan="2">TOTAL ('+list.length+' accounts)</td>'
+    +'<td class="td-num">—</td>'
+    +'<td class="td-num mono" style="color:var(--amber)">'+num(totNDA)+'</td>'
+    +'<td class="td-num">—</td>'
+    +'<td class="td-num" style="font-size:11px;">'
+      +'<span style="color:var(--red)">'+over30+'</span> &ge;30d &nbsp;'
+      +'<span style="color:var(--amber)">'+over14+'</span> 14-29d &nbsp;'
+      +'<span style="color:var(--green)">'+under14+'</span> &lt;14d'
+    +'</td>'
+    +'<td>—</td>'
+    +'</tr>';
+
+  if($('ndaSub')) $('ndaSub').textContent=list.length+' NDA accounts · '
+    +over30+' critical ≥30d · '+over14+' warning 14-29d · '+under14+' recent <14d';
+
+  // Sync col widths
+  setTimeout(()=>{
+    const ths=$('ndaTHead').querySelectorAll('th');
+    const tds=$('ndaTFoot').querySelectorAll('td');
+    if(tds.length>=ths.length) ths.forEach((th,i)=>{if(tds[i]){tds[i].style.width=th.offsetWidth+'px';tds[i].style.minWidth=th.offsetWidth+'px';}});
+  },60);
 }
 
 
@@ -2745,6 +2905,7 @@ function paint(){
   renderEntTable(k.ents);
   renderUserSummaryTable(filtered);
   renderPivotTable();
+  renderNdaTable();
 }
 
 function refresh(){
@@ -3059,11 +3220,48 @@ $('pivotRangeTabs').addEventListener('click',e=>{
   pivotRange=b.dataset.pr;
   $('pivotRangeTabs').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
   renderPivotTable();
+  renderNdaTable();
 });
 $('pivotSearch').addEventListener('input',e=>{
   pivotSearch=e.target.value;
   const {dates}=getPivotDates();
   renderPivotBody(dates, cardRows('pivot'));
+});
+
+// NDA aging filter tabs
+$('ndaAgingFilter').addEventListener('click',e=>{
+  const b=e.target.closest('.trend-tab');if(!b)return;
+  ndaAgingMin=parseInt(b.dataset.aging)||0;
+  $('ndaAgingFilter').querySelectorAll('.trend-tab').forEach(t=>t.classList.toggle('sel',t===b));
+  renderNdaTable();
+});
+
+// NDA email button
+$('ndaEmailBtn').addEventListener('click',()=>{
+  const list=window._ndaList||[];
+  if(!list.length){alert('No NDA accounts to email.');return;}
+  const subject='NDA Accounts Requiring Attention - '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  const critical=list.filter(d=>d.days>=30);
+  const warning=list.filter(d=>d.days>=14&&d.days<30);
+  const recent=list.filter(d=>d.days!==null&&d.days<14);
+  let body='Hi,\n\nPlease find below the list of accounts with No Data Available (NDA) VINs and their aging:\n\n';
+  if(critical.length){
+    body+='CRITICAL (30+ days) — '+critical.length+' accounts:\n';
+    critical.forEach(d=>{body+='  • '+d.name+' — '+d.days+'d | '+d.totalNDA+' NDA VINs | CSM: '+(d.csm||'—')+'\n';});
+    body+='\n';
+  }
+  if(warning.length){
+    body+='WARNING (14-29 days) — '+warning.length+' accounts:\n';
+    warning.forEach(d=>{body+='  • '+d.name+' — '+d.days+'d | '+d.totalNDA+' NDA VINs | CSM: '+(d.csm||'—')+'\n';});
+    body+='\n';
+  }
+  if(recent.length){
+    body+='RECENT (<14 days) — '+recent.length+' accounts:\n';
+    recent.forEach(d=>{body+='  • '+d.name+' — '+d.days+'d | '+d.totalNDA+' NDA VINs | CSM: '+(d.csm||'—')+'\n';});
+    body+='\n';
+  }
+  body+='Total: '+list.length+' accounts | '+list.reduce((s,r)=>s+r.totalNDA,0)+' NDA VINs\n\nSource: Spyne Catalog Dashboard\n';
+  window.location.href='mailto:?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
 });
 $('entTBody').addEventListener('click',e=>{const tr=e.target.closest('tr[data-eid]');if(tr)drillEnt(tr.dataset.eid);});
 $('exportBtn').addEventListener('click',()=>{
