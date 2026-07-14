@@ -2726,13 +2726,13 @@ function renderPivotBody(dates, allRows){
     // Priority: has real VINs > NDA-only > gap > zero
     const hasNda = ndaCount>0;
     const cls='pivot-td num-cell '+(v>0?'has-val':(gap?'gap-cell':(hasNda?'nda-cell':'zero')))+(isToday?' is-today':'');
+    const ndaBadge='<span class="nda-label" title="'+ndaCount+' No Data Available VINs">NDA</span>';
     let inner='';
     if(v>0){
       inner=String(v);
-      if(hasNda) inner+='<span class="nda-label" title="'+ndaCount+' No Data Available VINs">NDA</span>';
+      if(hasNda) inner+=' '+ndaBadge;
     } else if(hasNda){
-      // Only NDA VINs — no real inventory
-      inner='<span class="nda-label nda-only" title="'+ndaCount+' No Data Available VINs — no real inventory">NDA</span>';
+      inner=ndaBadge;
     } else if(gap){
       inner='<span class="gap-dot" title="No activity since last active day"></span>';
     }
