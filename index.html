@@ -969,15 +969,17 @@ async function loadAll(){
     const masterText=await fetchCSV('Master',10);
     MASTER=parseCSV(masterText);
     MASTER_MAP={};
-    const catalogueEids=new Set(); // EIDs where ANY master row has Stage=Catalogue
+    const catalogueEids=new Set(); // Team IDs where Stage=Catalogue
     MASTER.forEach(r=>{
-      const id=(r['Enterprise ID']||'').trim();
-      if(!id) return;
-      if(!MASTER_MAP[id]) MASTER_MAP[id]=r; // first row wins for general fields
-      // If this row has Stage=Catalogue, mark the EID regardless of row order
-      if((r['Stage']||'').trim().toLowerCase()==='catalogue') catalogueEids.add(id);
+      // Key by Team ID (rooftop-level, unique) — falls back to Enterprise ID
+      const tid=(r['Team ID']||'').trim();
+      const eid=(r['Enterprise ID']||'').trim();
+      const key=tid||eid;
+      if(!key) return;
+      MASTER_MAP[key]=r;
+      if((r['Stage']||'').trim().toLowerCase()==='catalogue') catalogueEids.add(key);
     });
-    window._catalogueEids=catalogueEids; // expose for NDA table
+    window._catalogueEids=catalogueEids;
 
     setLoading(true,'Loading VIN Level-1 data…',35);
     const vinText=await fetchCSV('Data VIN Level-1',35);
@@ -996,11 +998,14 @@ async function loadAll(){
       r._month=d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`:null;
       // Enrich from Master
       const mid=(r['Enterprise ID']||'').trim();
-      const m=MASTER_MAP[mid];
+      const mtid=(r['Team ID']||'').trim();
+      const mkey=mtid&&MASTER_MAP[mtid]?mtid:mid; // prefer Team ID lookup
+      const m=MASTER_MAP[mkey];
       r._masterStage=(m&&m['Account Stage'])||'';
       r._masterSegment=(m&&(m['customer_segment']||r['customer_segment']))||r['customer_segment']||'';
       r._dms=(r['DMS']||'').trim();
-      r._catalogueStage=(window._catalogueEids&&window._catalogueEids.has(mid))?'Catalogue':'';
+      // Catalogue: check if this specific rooftop (Team ID) or enterprise is in Catalogue stage
+      r._catalogueStage=(window._catalogueEids&&(window._catalogueEids.has(mtid)||window._catalogueEids.has(mid)))?'Catalogue':'';
       RAW_VIN.push(r);
       if(r._month) allDates.add(r._month);
     }
@@ -2801,41 +2806,36 @@ function renderNdaTable(){
   // Use full RAW_VIN regardless of date filter — we want real last-data date ever
   const today = new Date();
 
-  // For each account that has ever had NDA rows, find:
-  //   lastRealDate = last date with a non-NDA VIN
-  // Only include accounts where Master Stage = "Catalogue"
+  // Build NDA map keyed by lowercase account name (case-insensitive dedup)
+  // Only Catalogue stage accounts (Team ID level check, not EID level)
   const acctMap = {};
   for(const r of RAW_VIN){
-    const acct=(r['Account Name']||'').trim(); if(!acct) continue;
     if(r['Type']!=='No Data Available') continue;
-    // Only Catalogue stage accounts
+    const acct=(r['Account Name']||'').trim(); if(!acct) continue;
     if(!r._catalogueStage||r._catalogueStage.trim().toLowerCase()!=='catalogue') continue;
-    // Mark as NDA account - will look up real data separately
-    if(!acctMap[acct]) acctMap[acct]={
-      lastRealDate:null, lastNdaDate:null,
-      csm:'', segment:'', eid:''
-    };
-    if(r._date&&(!acctMap[acct].lastNdaDate||r._date>acctMap[acct].lastNdaDate))
-      acctMap[acct].lastNdaDate=r._date;
-    if(!acctMap[acct].csm) acctMap[acct].csm=(r['CSM']||'');
-    if(!acctMap[acct].segment) acctMap[acct].segment=r._masterSegment||'';
-    if(!acctMap[acct].eid) acctMap[acct].eid=(r['Enterprise ID']||'').trim();
+    const key=acct.toLowerCase();
+    if(!acctMap[key]) acctMap[key]={displayName:acct,lastRealDate:null,lastNdaDate:null,csm:'',segment:'',eid:''};
+    if(r._date&&(!acctMap[key].lastNdaDate||r._date>acctMap[key].lastNdaDate))
+      acctMap[key].lastNdaDate=r._date;
+    if(!acctMap[key].csm) acctMap[key].csm=(r['CSM']||'');
+    if(!acctMap[key].segment) acctMap[key].segment=r._masterSegment||'';
+    if(!acctMap[key].eid) acctMap[key].eid=(r['Enterprise ID']||'').trim();
   }
 
-  // Now find last real VIN date for each Catalogue NDA account
+  // Find last real VIN date for each account (case-insensitive match)
   for(const r of RAW_VIN){
+    if(r['Type']==='No Data Available') continue;
     const acct=(r['Account Name']||'').trim();
-    if(!acctMap[acct]) continue; // not a Catalogue NDA account
-    if(r['Type']==='No Data Available') continue; // skip NDA rows
-    if(r._date&&(!acctMap[acct].lastRealDate||r._date>acctMap[acct].lastRealDate))
-      acctMap[acct].lastRealDate=r._date;
+    const key=acct.toLowerCase();
+    if(!acctMap[key]) continue;
+    if(r._date&&(!acctMap[key].lastRealDate||r._date>acctMap[key].lastRealDate))
+      acctMap[key].lastRealDate=r._date;
   }
 
   // Apply non-date filters
-  let list = Object.entries(acctMap).map(([name,v])=>{
-    // Skip if non-date filters exclude this account
+  let list = Object.entries(acctMap).map(([key,v])=>{
     if(F.seg&&F.seg.size>0&&!setHasCI(F.seg,v.segment)) return null;
-    if(F.entname&&F.entname.size>0&&!setHasCI(F.entname,name)) return null;
+    if(F.entname&&F.entname.size>0&&!setHasCI(F.entname,v.displayName)) return null;
 
     // Days since last REAL data
     const daysSinceReal = v.lastRealDate
