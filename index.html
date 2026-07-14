@@ -2845,7 +2845,7 @@ function renderNdaTable(){
     // Only include if no real data recently — or never had real data
     // (If lastRealDate is null, they've never had real VINs — always show)
     return {
-      name,
+      name: v.displayName,
       lastRealDate: v.lastRealDate,
       lastNdaDate:  v.lastNdaDate,
       days:         daysSinceReal,
