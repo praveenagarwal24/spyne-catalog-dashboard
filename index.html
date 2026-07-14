@@ -798,10 +798,10 @@ tr:hover td{background:var(--bg);}
           </button>
         </div>
       </div>
-      <div class="table-scroll" style="max-height:360px;overflow-y:auto;">
+      <div class="table-scroll" id="ndaScrollWrap" style="overflow-y:auto;">
         <table>
           <thead id="ndaTHead"></thead>
-          <tbody id="ndaTBody"><tr><td colspan="7" style="padding:30px;text-align:center;color:var(--muted)">Loading...</td></tr></tbody>
+          <tbody id="ndaTBody"><tr><td colspan="6" style="padding:30px;text-align:center;color:var(--muted)">Loading...</td></tr></tbody>
         </table>
       </div>
       <div style="border-top:2px solid var(--line-2);">
@@ -2930,6 +2930,20 @@ function renderNdaTable(){
 
   if($('ndaSub')) $('ndaSub').textContent=list.length+' accounts with NDA · '
     +(never?never+' never had real data · ':'')+over30+' critical ≥30d · '+over14+' warning 14-29d · '+under14+' recent <14d';
+
+  // Adjust scroll container height to fit content (max 10 rows, then scroll)
+  setTimeout(()=>{
+    const wrap=$('ndaScrollWrap');
+    if(!wrap) return;
+    const rows=wrap.querySelectorAll('tbody tr');
+    const thead=wrap.querySelector('thead');
+    if(!rows.length) return;
+    const rowH=rows[0].offsetHeight||40;
+    const headH=thead?thead.offsetHeight:38;
+    const MAX_ROWS=15;
+    const visRows=Math.min(rows.length, MAX_ROWS);
+    wrap.style.maxHeight=(headH + visRows*rowH + 4)+'px';
+  }, 60);
 
   setTimeout(()=>{
     const ths=$('ndaTHead').querySelectorAll('th');
