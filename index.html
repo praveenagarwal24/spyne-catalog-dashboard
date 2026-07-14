@@ -186,12 +186,11 @@ main{padding:22px 28px 80px;max-width:1600px;margin:0 auto;}
 .pivot-td.num-cell.gap-cell{color:var(--red);position:relative;}
 .nda-cell{position:relative;}
 .nda-label{
-  display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;
-  letter-spacing:.04em;color:var(--amber);background:rgba(245,194,101,.15);
+  display:inline-block;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;
+  letter-spacing:.03em;color:var(--amber);background:rgba(245,194,101,.15);
   border:1px solid rgba(245,194,101,.4);border-radius:3px;
-  padding:1px 4px;vertical-align:middle;margin-left:3px;line-height:1.4;
+  padding:0px 3px;vertical-align:middle;margin-left:2px;line-height:1.5;white-space:nowrap;
 }
-.nda-label.nda-only{margin-left:0;}
 .gap-dot{
   display:inline-block;width:5px;height:5px;border-radius:50%;
   background:var(--red);opacity:.85;vertical-align:middle;
@@ -789,6 +788,10 @@ tr:hover td{background:var(--bg);}
             <button class="trend-tab" data-aging="14">14+ days</button>
             <button class="trend-tab" data-aging="30">30+ days</button>
           </div>
+          <button id="ndaCsvBtn" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;background:var(--surface-2);color:var(--ink);border:1px solid var(--line);font:600 13px 'Inter';cursor:pointer;white-space:nowrap;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h10v8l-3 3H3z"/><polyline points="10,11 10,14 13,11"/><line x1="6" y1="6" x2="10" y2="6"/><line x1="6" y1="9" x2="9" y2="9"/></svg>
+            Download CSV
+          </button>
           <button id="ndaEmailBtn" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;background:var(--accent);color:#fff;border:none;font:600 13px 'Inter';cursor:pointer;white-space:nowrap;">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="14" height="10" rx="2"/><polyline points="1,5 8,9 15,5"/></svg>
             Email list
@@ -2650,8 +2653,11 @@ function renderPivotBody(dates, allRows){
     if(!dk) continue;
     if(!pivot[acct]) pivot[acct]={};
     if(!pivot[acct][person]) pivot[acct][person]={};
-    pivot[acct][person][dk]=(pivot[acct][person][dk]||0)+1;
-    // Track NDA cells separately for distinct marking
+    // Only count real VINs (exclude NDA rows — they have VIN="NA")
+    if(r['Type']!=='No Data Available'){
+      pivot[acct][person][dk]=(pivot[acct][person][dk]||0)+1;
+    }
+    // Track NDA separately for distinct marking
     if(r['Type']==='No Data Available'){
       if(!pivotNDA[acct]) pivotNDA[acct]={};
       pivotNDA[acct][dk]=(pivotNDA[acct][dk]||0)+1;
@@ -2661,7 +2667,7 @@ function renderPivotBody(dates, allRows){
   const accts=Object.keys(pivot).sort();
   const now=new Date();
   const todayKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-  const NUM_W=40, ACCT_W=210, PERSON_W=130, COL_W=64, TOT_W=70;
+  const NUM_W=40, ACCT_W=210, PERSON_W=130, COL_W=76, TOT_W=70;
   const totalWidth=NUM_W+ACCT_W+PERSON_W+(dates.length*COL_W)+TOT_W;
 
   // Match footer table width to main table so columns align
@@ -2723,16 +2729,17 @@ function renderPivotBody(dates, allRows){
 
   // ── Render body ──
   function cellHtml(v, gap, isToday, ndaCount){
-    // Priority: has real VINs > NDA-only > gap > zero
+    // NDA rows have VIN="NA" — they are mutually exclusive with real VINs.
+    // v = total count (real VINs only, since NDA rows are tracked separately in pivotNDA)
     const hasNda = ndaCount>0;
     const cls='pivot-td num-cell '+(v>0?'has-val':(gap?'gap-cell':(hasNda?'nda-cell':'zero')))+(isToday?' is-today':'');
     const ndaBadge='<span class="nda-label" title="'+ndaCount+' No Data Available VINs">NDA</span>';
     let inner='';
     if(v>0){
       inner=String(v);
-      if(hasNda) inner+=' '+ndaBadge;
+      if(hasNda) inner+=' '+ndaBadge; // rare: same day has both real + NDA
     } else if(hasNda){
-      inner=ndaBadge;
+      inner=ndaBadge; // pure NDA day — no real VINs
     } else if(gap){
       inner='<span class="gap-dot" title="No activity since last active day"></span>';
     }
@@ -3269,6 +3276,28 @@ $('ndaEmailBtn').addEventListener('click',()=>{
   }
   body+='Total: '+list.length+' accounts | '+list.reduce((s,r)=>s+r.totalNDA,0)+' NDA VINs\n\nSource: Spyne Catalog Dashboard\n';
   const a=document.createElement('a');a.href='mailto:?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);document.body.appendChild(a);a.click();document.body.removeChild(a);
+});
+
+$('ndaCsvBtn').addEventListener('click',()=>{
+  const list=window._ndaList||[];
+  if(!list.length){alert('No NDA accounts to export.');return;}
+  const headers=['Account','Segment','NDA VINs','Last NDA Date','Days Since','CSM'];
+  const rows=list.map(d=>[
+    '"'+(d.name||'').replace(/"/g,'""')+'"',
+    '"'+(d.segment||'')+'"',
+    d.totalNDA,
+    d.lastNDA?d.lastNDA.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'',
+    d.days!==null?d.days:'',
+    '"'+(d.csm||'').replace(/"/g,'""')+'"'
+  ].join(','));
+  const csv=[headers.join(',')].concat(rows).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='nda_accounts_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 });
 $('entTBody').addEventListener('click',e=>{const tr=e.target.closest('tr[data-eid]');if(tr)drillEnt(tr.dataset.eid);});
 $('exportBtn').addEventListener('click',()=>{
