@@ -969,10 +969,15 @@ async function loadAll(){
     const masterText=await fetchCSV('Master',10);
     MASTER=parseCSV(masterText);
     MASTER_MAP={};
+    const catalogueEids=new Set(); // EIDs where ANY master row has Stage=Catalogue
     MASTER.forEach(r=>{
       const id=(r['Enterprise ID']||'').trim();
-      if(id) MASTER_MAP[id]=r;
+      if(!id) return;
+      if(!MASTER_MAP[id]) MASTER_MAP[id]=r; // first row wins for general fields
+      // If this row has Stage=Catalogue, mark the EID regardless of row order
+      if((r['Stage']||'').trim().toLowerCase()==='catalogue') catalogueEids.add(id);
     });
+    window._catalogueEids=catalogueEids; // expose for NDA table
 
     setLoading(true,'Loading VIN Level-1 data…',35);
     const vinText=await fetchCSV('Data VIN Level-1',35);
@@ -995,7 +1000,7 @@ async function loadAll(){
       r._masterStage=(m&&m['Account Stage'])||'';
       r._masterSegment=(m&&(m['customer_segment']||r['customer_segment']))||r['customer_segment']||'';
       r._dms=(r['DMS']||'').trim();
-      r._catalogueStage=(m&&m['Stage'])||'';
+      r._catalogueStage=(window._catalogueEids&&window._catalogueEids.has(mid))?'Catalogue':'';
       RAW_VIN.push(r);
       if(r._month) allDates.add(r._month);
     }
