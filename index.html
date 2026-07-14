@@ -955,7 +955,7 @@ function showErr(msg){$('errBox').innerHTML=msg?`<div class="err">${esc(msg)}</d
 // ----------------------------------------
 async function fetchCSV(sheetName, pct){
   setLoading(true,`Loading "${sheetName}"…`,pct);
-  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&tq=select%20*`;
   const resp=await fetch(url);
   if(!resp.ok)throw new Error(`HTTP ${resp.status} for "${sheetName}". Publish the sheet publicly first (File → Share → Publish to web).`);
   return resp.text();
