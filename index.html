@@ -955,7 +955,16 @@ function showErr(msg){$('errBox').innerHTML=msg?`<div class="err">${esc(msg)}</d
 // ----------------------------------------
 async function fetchCSV(sheetName, pct){
   setLoading(true,`Loading "${sheetName}"…`,pct);
-  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&tq=select%20*&_=${Date.now()}`;
+  // Use export endpoint with hardcoded gid — this bypasses any active Google Sheets
+  // row filters entirely. gviz/tq respects filters and returns filtered rows only.
+  const GID_MAP = {
+    'Master':           '342878907',
+    'Data VIN Level-1': '1350286518',
+  };
+  const gid = GID_MAP[sheetName];
+  const url = gid
+    ? `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}&_=${Date.now()}`
+    : `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&tq=select%20*&_=${Date.now()}`;
   const resp=await fetch(url,{cache:'no-store'});
   if(!resp.ok)throw new Error(`HTTP ${resp.status} for "${sheetName}". Publish the sheet publicly first (File → Share → Publish to web).`);
   return resp.text();
