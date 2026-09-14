@@ -2913,7 +2913,7 @@ function renderNdaTable(){
     const lastReal=d.lastRealDate
       ?d.lastRealDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
       :'<span style="color:var(--red);font-size:11px;">Never had real data</span>';
-    const consoleUrl='https://console.spyne.ai/inventory/v2/overview?enterprise_id='+encodeURIComponent(d.eid)+'&team_id='+encodeURIComponent(d.tid);
+    const consoleUrl='https://console.spyne.ai/home?team_id=%5B'+encodeURIComponent(d.tid)+'%5D&enterprise_id='+encodeURIComponent(d.eid);
     const openIcon=d.tid
       ?'<a href="'+consoleUrl+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" '
         +'title="Open in Spyne Console" style="display:inline-flex;align-items:center;margin-left:5px;color:var(--accent);opacity:.75;vertical-align:middle;">'
