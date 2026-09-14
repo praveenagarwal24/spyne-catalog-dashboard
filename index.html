@@ -2,7 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
-<title>Catalog Dashboard · Spyne</title>
+<title>Catalog Dashboard · Spyne · v20260914-1937</title>
+  <meta name="build-version" content="20260914-1937">
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2823,7 +2824,9 @@ function renderNdaTable(){
     const acct=(r['Account Name']||'').trim(); if(!acct) continue;
     if(!r._catalogueStage||r._catalogueStage.trim().toLowerCase()!=='catalogue') continue;
     const key=acct.toLowerCase();
-    if(!acctMap[key]) acctMap[key]={displayName:acct,lastRealDate:null,lastNdaDate:null,csm:'',segment:'',eid:''};
+    if(!acctMap[key]) acctMap[key]={displayName:acct,lastRealDate:null,lastNdaDate:null,csm:'',segment:'',eid:'',tid:'',entName:''};
+    if(!acctMap[key].tid) acctMap[key].tid=(r['Team ID']||'').trim();
+    if(!acctMap[key].entName){const mm=MASTER_MAP[(r['Team ID']||'').trim()]||MASTER_MAP[(r['Enterprise ID']||'').trim()];acctMap[key].entName=(mm&&mm['Enterprise Name'])||'';}
     if(r._date&&(!acctMap[key].lastNdaDate||r._date>acctMap[key].lastNdaDate))
       acctMap[key].lastNdaDate=r._date;
     if(!acctMap[key].csm) acctMap[key].csm=(r['CSM']||'');
@@ -2860,7 +2863,9 @@ function renderNdaTable(){
       days:         daysSinceReal,
       csm:          v.csm,
       segment:      v.segment,
-      eid:          v.eid
+      eid:          v.eid,
+      tid:          v.tid,
+      entName:      v.entName
     };
   }).filter(Boolean);
 
@@ -2886,15 +2891,18 @@ function renderNdaTable(){
 
   $('ndaTHead').innerHTML='<tr>'
     +'<th class="num">#</th>'
+    +'<th>Enterprise</th>'
     +'<th>Account</th>'
     +'<th class="num">Segment</th>'
+    +'<th class="num">Enterprise ID</th>'
+    +'<th class="num">Team ID</th>'
     +'<th class="num">Last real data</th>'
     +'<th class="num">Days without data</th>'
     +'<th>CSM</th>'
     +'</tr>';
 
   if(!list.length){
-    $('ndaTBody').innerHTML='<tr><td colspan="6" style="padding:30px;text-align:center;color:var(--muted)">No NDA accounts in current filter</td></tr>';
+    $('ndaTBody').innerHTML='<tr><td colspan="9" style="padding:30px;text-align:center;color:var(--muted)">No NDA accounts in current filter</td></tr>';
     $('ndaTFoot').innerHTML='';
     if($('ndaSub')) $('ndaSub').textContent='No NDA accounts in current view';
     return;
@@ -2905,10 +2913,23 @@ function renderNdaTable(){
     const lastReal=d.lastRealDate
       ?d.lastRealDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
       :'<span style="color:var(--red);font-size:11px;">Never had real data</span>';
+    const consoleUrl='https://console.spyne.ai/home?team_id=%5B'+encodeURIComponent(d.tid)+'%5D&enterprise_id='+encodeURIComponent(d.eid);
+    const openIcon=d.tid
+      ?'<a href="'+consoleUrl+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" '
+        +'title="Open in Spyne Console" style="display:inline-flex;align-items:center;margin-left:5px;color:var(--accent);opacity:.75;vertical-align:middle;">'
+        +'<svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+        +'<path d="M7 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1V9"/>'
+        +'<polyline points="10 1 15 1 15 6"/><line x1="15" y1="1" x2="8" y2="8"/>'
+        +'</svg></a>'
+      :'';
     return '<tr style="cursor:pointer" data-eid="'+esc(d.eid)+'">'
       +'<td class="td-num" style="color:var(--muted);font-size:11px;">'+(i+1)+'</td>'
+      +'<td style="font-size:12px;color:var(--muted);">'+esc(d.entName||'—')+'</td>'
       +'<td><b>'+esc(d.name)+'</b></td>'
       +'<td class="td-num">'+segPill+'</td>'
+      +'<td class="td-num mono" style="font-size:11px;color:var(--muted);">'+esc(d.eid||'—')+'</td>'
+      +'<td class="td-num" style="white-space:nowrap;">'
+        +'<span class="mono" style="font-size:11px;color:var(--muted);">'+esc(d.tid||'—')+'</span>'+openIcon+'</td>'
       +'<td class="td-num mono">'+lastReal+'</td>'
       +'<td class="td-num">'+agingBadge(d.days)+'</td>'
       +'<td>'+esc(d.csm||'—')+'</td>'
@@ -2925,7 +2946,8 @@ function renderNdaTable(){
   const under14=list.filter(d=>d.days!==null&&d.days<14).length;
 
   if($('ndaTFoot')) $('ndaTFoot').innerHTML='<tr style="font-weight:600;background:var(--surface-2)">'
-    +'<td class="mono" style="font-size:11px;letter-spacing:.06em;color:var(--muted);padding:10px 14px" colspan="2">TOTAL ('+list.length+' accounts)</td>'
+    +'<td class="mono" style="font-size:11px;letter-spacing:.06em;color:var(--muted);padding:10px 14px" colspan="3">TOTAL ('+list.length+' accounts)</td>'
+    +'<td class="td-num">—</td>'
     +'<td class="td-num">—</td>'
     +'<td class="td-num">—</td>'
     +'<td class="td-num" style="font-size:11px;">'
