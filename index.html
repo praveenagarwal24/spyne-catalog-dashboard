@@ -2,8 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
-<title>Catalog Dashboard · Spyne · v2</title>
-  <meta name="build-version" content="v2">
+<title>Catalog Dashboard · Spyne · v3</title>
+  <meta name="build-version" content="v3">
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2708,16 +2708,6 @@ function renderPivotBody(dates, allRows){
     sw.addEventListener('scroll',()=>{fw.scrollLeft=sw.scrollLeft;});
   }
 
-  // Wire sort click on every render (re-attach since thead is rebuilt)
-  thead.querySelectorAll('th[data-psort]').forEach(function(th){
-    th.addEventListener('click',function(){
-      const col=th.dataset.psort;
-      if(pivotSort.col===col) pivotSort.dir=pivotSort.dir==='desc'?'asc':'desc';
-      else { pivotSort.col=col; pivotSort.dir=col==='acct'||col==='person'?'asc':'desc'; }
-      renderPivotBody(dates, cardRows('pivot'));
-    });
-  });
-
   // ── Header ──
   function sortInd(col){
     if(pivotSort.col!==col) return '<span class="sort-ind">↕</span>';
@@ -2737,6 +2727,16 @@ function renderPivotBody(dates, allRows){
     }).join('')
     +'<th class="pivot-th total-col'+(pivotSort.col==='total'?' sorted':'')+'" data-psort="total" style="width:'+TOT_W+'px;">Total'+sortInd('total')+'</th>'
     +'</tr>';
+
+  // Wire sort clicks NOW — thead.innerHTML is set, so these th elements are live
+  thead.querySelectorAll('th[data-psort]').forEach(function(th){
+    th.addEventListener('click',function(){
+      const col=th.dataset.psort;
+      if(pivotSort.col===col) pivotSort.dir=pivotSort.dir==='desc'?'asc':'desc';
+      else { pivotSort.col=col; pivotSort.dir=(col==='acct'||col==='person')?'asc':'desc'; }
+      renderPivotBody(dates, cardRows('pivot'));
+    });
+  });
 
   if(!accts.length){
     tbody.innerHTML='<tr><td colspan="'+(dates.length+4)+'" style="padding:36px;text-align:center;color:var(--muted)">No data for this range / filter</td></tr>';
