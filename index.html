@@ -2,8 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
-<title>Catalog Dashboard · Spyne · v20260914-1937</title>
-  <meta name="build-version" content="20260914-1937">
+<title>Catalog Dashboard · Spyne · v2</title>
+  <meta name="build-version" content="v2">
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -163,7 +163,11 @@ main{padding:22px 28px 80px;max-width:1600px;margin:0 auto;}
   text-transform:uppercase;letter-spacing:.07em;color:var(--muted);
   border-bottom:1.5px solid var(--line);white-space:nowrap;
   position:sticky;top:0;z-index:2;text-align:right;
+  cursor:pointer;user-select:none;
 }
+.pivot-th:hover{color:var(--ink);}
+.pivot-th.sorted{color:var(--accent);}
+.pivot-th .sort-ind{margin-left:4px;opacity:.6;font-size:9px;}
 .pivot-th.sticky-left{position:sticky;left:0;z-index:3;background:var(--surface-2);text-align:left;}
 .pivot-th.date-col{position:relative;}
 .pivot-th.date-col.is-today{color:var(--accent);}
@@ -2570,6 +2574,7 @@ const PIVOT_TYPES = ['DMS Download','Console Upload','Console Download','Live','
 let pivotActiveTypes = new Set(PIVOT_TYPES); // all on by default
 let pivotRange = 'this_month';
 let pivotSearch = '';
+let pivotSort = {col:'total', dir:'desc'}; // col: 'acct' | 'person' | date string | 'total'
 
 function getPivotDates(){
   const now=new Date(), tod=new Date(now.getFullYear(),now.getMonth(),now.getDate());
@@ -2703,18 +2708,34 @@ function renderPivotBody(dates, allRows){
     sw.addEventListener('scroll',()=>{fw.scrollLeft=sw.scrollLeft;});
   }
 
+  // Wire sort click on every render (re-attach since thead is rebuilt)
+  thead.querySelectorAll('th[data-psort]').forEach(function(th){
+    th.addEventListener('click',function(){
+      const col=th.dataset.psort;
+      if(pivotSort.col===col) pivotSort.dir=pivotSort.dir==='desc'?'asc':'desc';
+      else { pivotSort.col=col; pivotSort.dir=col==='acct'||col==='person'?'asc':'desc'; }
+      renderPivotBody(dates, cardRows('pivot'));
+    });
+  });
+
   // ── Header ──
+  function sortInd(col){
+    if(pivotSort.col!==col) return '<span class="sort-ind">↕</span>';
+    return '<span class="sort-ind">'+(pivotSort.dir==='desc'?'↓':'↑')+'</span>';
+  }
   thead.innerHTML='<tr>'
-    +'<th class="pivot-th sticky-left" style="width:'+NUM_W+'px;text-align:center;">#</th>'
-    +'<th class="pivot-th sticky-left" style="width:'+ACCT_W+'px;left:'+NUM_W+'px;">Account</th>'
-    +'<th class="pivot-th" style="width:'+PERSON_W+'px;">Person</th>'
+    +'<th class="pivot-th sticky-left" style="width:'+NUM_W+'px;text-align:center;cursor:default;">#</th>'
+    +'<th class="pivot-th sticky-left'+(pivotSort.col==='acct'?' sorted':'')+'" data-psort="acct" style="width:'+ACCT_W+'px;left:'+NUM_W+'px;text-align:left;">Account'+sortInd('acct')+'</th>'
+    +'<th class="pivot-th'+(pivotSort.col==='person'?' sorted':'')+'" data-psort="person" style="width:'+PERSON_W+'px;text-align:left;">Person'+sortInd('person')+'</th>'
     +dates.map(d=>{
       const dt=new Date(d+'T00:00:00');
       const isToday=d===todayKey;
-      return '<th class="pivot-th date-col'+(isToday?' is-today':'')+'" style="width:'+COL_W+'px;">'
-        +dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+(isToday?'<span class="today-dot"></span>':'')+'</th>';
+      const label=dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+      const sorted=pivotSort.col===d?' sorted':'';
+      return '<th class="pivot-th date-col'+sorted+(isToday?' is-today':'')+'" data-psort="'+d+'" style="width:'+COL_W+'px;">'
+        +label+(isToday?'<span class="today-dot"></span>':'')+sortInd(d)+'</th>';
     }).join('')
-    +'<th class="pivot-th total-col" style="width:'+TOT_W+'px;">Total</th>'
+    +'<th class="pivot-th total-col'+(pivotSort.col==='total'?' sorted':'')+'" data-psort="total" style="width:'+TOT_W+'px;">Total'+sortInd('total')+'</th>'
     +'</tr>';
 
   if(!accts.length){
@@ -2747,6 +2768,20 @@ function renderPivotBody(dates, allRows){
     const acctRowTotal=subRows.reduce((s,r)=>s+r.rowTotal,0);
     bodyRows.push({acct,acctCells,acctRowTotal,subRows});
   }
+
+  // ── Sort bodyRows ──
+  bodyRows.sort(function(a,b){
+    let av, bv;
+    if(pivotSort.col==='acct')        { av=a.acct.toLowerCase(); bv=b.acct.toLowerCase(); }
+    else if(pivotSort.col==='person') { av=(a.subRows[0]&&a.subRows[0].person||'').toLowerCase(); bv=(b.subRows[0]&&b.subRows[0].person||'').toLowerCase(); }
+    else if(pivotSort.col==='total')  { av=a.acctRowTotal; bv=b.acctRowTotal; }
+    else { // date column key
+      const di=dates.indexOf(pivotSort.col);
+      av=di>=0?a.acctCells[di]:0; bv=di>=0?b.acctCells[di]:0;
+    }
+    const cmp = typeof av==='string' ? av.localeCompare(bv) : av-bv;
+    return pivotSort.dir==='desc' ? -cmp : cmp;
+  });
 
   // ── Render body ──
   function cellHtml(v, gap, isToday, ndaCount){
